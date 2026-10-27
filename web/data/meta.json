@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "pack": "data-pack-v001",
+  "generatedAt": "2026-10-21T13:30:08.108Z",
+  "source": {
+    "api": "https://api.seerapi.com/v1",
+    "pageSize": 200
+  },
+  "resources": {
+    "types": {
+      "api": "element_type",
+      "hash": "c9d6b67f",
+      "apiCount": 26,
+      "count": 26,
+      "file": "data/types.json"
+    },
+    "combos": {
+      "api": "element_type_combination",
+      "hash": "c739d8ef",
+      "apiCount": 139,
+      "count": 139,
+      "file": "data/combos.json"
+    },
+    "natures": {
+      "api": "nature",
+      "hash": "a8f24a7f",
+      "apiCount": 25,
+      "count": 25,
+      "file": "data/natures.json"
+    },
+    "pets": {
+      "api": "pet",
+      "hash": "82c913c1",
+      "apiCount": 4941,
+      "count": 4941,
+      "file": "data/pets.json"
+    },
+    "skills": {
+      "api": "skill",
+      "hash": "73977396",
+      "apiCount": 27354,
+      "count": 27354,
+      "file": "data/skills.json"
+    },
+    "soulmarks": {
+      "api": "soulmark",
+      "hash": "1b9705a4",
+      "apiCount": 2150,
+      "count": 2150,
+      "file": "data/soulmarks.json"
+    },
+    "mintmarks": {
+      "api": "mintmark",
+      "hash": "7da6c3de",
+      "apiCount": 3834,
+      "count": 3834,
+      "file": "data/mintmarks.json"
+    },
+    "suits": {
+      "api": "suit",
+      "hash": "fe4b59ac",
+      "apiCount": 478,
+      "count": 478,
+      "file": "data/suits.json"
+    }
+  },
+  "counts": {
+    "types": 26,
+    "combos": 139,
+    "natures": 25,
+    "pets": 4941,
+    "skills": 27354,
+    "soulmarks": 2150,
+    "mintmarks": 3834,
+    "suits": 478
+  }
+}

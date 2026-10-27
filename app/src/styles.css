@@ -1,0 +1,118 @@
+:root {
+  --bg: #070d18;
+  --line: #1e3355;
+  --cyan: #35e2ff;
+  --text: #dbe8ff;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, 'Microsoft YaHei', sans-serif;
+}
+
+.app {
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 游戏层容器 */
+.game-host { position: relative; min-height: 0; }
+.game-host canvas { display: block; }
+
+/* UI 覆盖层：完全不接收 Canvas 的布局影响 */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.overlay button,
+.overlay .hud { pointer-events: auto; }
+
+.hud {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  padding: 10px 14px;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(8, 16, 30, 0.85), rgba(8, 16, 30, 0));
+}
+
+.side { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.side.foe { align-items: flex-end; }
+.side .name { font-size: 15px; font-weight: 700; }
+.side.me .name { color: #9fffd0; }
+.side.foe .name { color: #ffb3b3; }
+.side .hp { color: #8fa6c6; font-variant-numeric: tabular-nums; }
+
+.turn { font-size: 16px; font-weight: 800; color: var(--cyan); letter-spacing: 1px; }
+
+.actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 14px;
+}
+
+.actions button {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(53, 226, 255, 0.35);
+  background: rgba(20, 40, 70, 0.9);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.actions button:hover { border-color: var(--cyan); }
+
+/* P3 背包（overlay 内的 DOM 列表） */
+.bag {
+  pointer-events: auto;
+  margin: 0 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(8, 16, 30, 0.94);
+  border: 1px solid rgba(53, 226, 255, 0.28);
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+}
+.bag-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.bag-head .muted { color: #8fa6c6; font-size: 12px; }
+.bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 8px; }
+.pet-card {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  padding: 8px 10px; border-radius: 10px; cursor: pointer; text-align: left;
+  background: linear-gradient(180deg, #1b2a4a, #101a30);
+  border: 1px solid rgba(53, 226, 255, 0.22); color: var(--text);
+}
+.pet-card.picked { border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan) inset; }
+.pet-no { font-size: 10px; color: #8fa6c6; }
+.pet-name { font-size: 14px; font-weight: 700; }
+.pet-meta { font-size: 11px; color: #9fc3ff; }
+.pet-stats { font-size: 10px; color: #8fa6c6; }
+
+.loading { padding: 32px; }
+.pet-art { width: 100%; height: 100px; object-fit: contain; }
+.pet-art.missing { display: grid; place-items: center; color: #8fa6c6; }
+.team-slots, .bag-search, .skills, .bench { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+.team-slots button, .bag-search button, .battle-panel button, .loading button {
+  padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: #172740; color: var(--text); cursor: pointer;
+}
+.team-slots .active-slot { border-color: #358b99; }
+.bag-search input { padding: 6px; background: #0b1220; color: var(--text); border: 1px solid var(--line); }
+.bag-search span { align-self: center; }
+button:disabled { opacity: .5; cursor: default; }
+.battle-panel { pointer-events: auto; align-self: center; width: min(920px, 96%); margin-top: auto; padding: 12px; background: rgba(8,16,30,.9); border-radius: 12px; }
+.battle-log { max-height: 160px; overflow: auto; font-size: 12px; color: #9fc3ff; }
+.actions span { align-self: center; font-size: 12px; }
+@media (max-width: 600px) { .bag-head { flex-direction: column; } .bag { margin: 0 6px; } .bag-grid { grid-template-columns: repeat(2, 1fr); } }

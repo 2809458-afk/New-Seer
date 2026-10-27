@@ -1,0 +1,761 @@
+{
+ "schema": 1,
+ "kind": "battle-golden",
+ "generator": "tools/gen-golden.js",
+ "engine": "js/battle.js",
+ "dataPack": "data-pack-v001",
+ "dataGeneratedAt": "2026-10-21T13:30:08.108Z",
+ "count": 20,
+ "cases": [
+  {
+   "id": "stats-01",
+   "kind": "stats",
+   "label": "布布种子 Lv100 无性格",
+   "pet": 1,
+   "build": {
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "expect": {
+    "hp": 251,
+    "atk": 174,
+    "def": 166,
+    "spAtk": 126,
+    "spDef": 146,
+    "spd": 98
+   }
+  },
+  {
+   "id": "stats-02",
+   "kind": "stats",
+   "label": "布布种子 Lv50",
+   "pet": 1,
+   "build": {
+    "level": 50,
+    "iv": 31,
+    "ev": {}
+   },
+   "expect": {
+    "hp": 130,
+    "atk": 89,
+    "def": 85,
+    "spAtk": 65,
+    "spDef": 75,
+    "spd": 51
+   }
+  },
+  {
+   "id": "stats-03",
+   "kind": "stats",
+   "label": "塔西姆 孤独 +攻−防",
+   "pet": 2419,
+   "build": {
+    "level": 100,
+    "iv": 31,
+    "ev": {},
+    "nature": 0
+   },
+   "expect": {
+    "hp": 401,
+    "atk": 301,
+    "def": 185,
+    "spAtk": 186,
+    "spDef": 214,
+    "spd": 252
+   }
+  },
+  {
+   "id": "stats-04",
+   "kind": "stats",
+   "label": "圣灵谱尼 刻印平加",
+   "pet": 5000,
+   "build": {
+    "level": 100,
+    "iv": 31,
+    "ev": {},
+    "nature": 0,
+    "bonus": {
+     "hp": 72,
+     "sp_atk": 32,
+     "spd": 22
+    }
+   },
+   "expect": {
+    "hp": 573,
+    "atk": 281,
+    "def": 248,
+    "spAtk": 368,
+    "spDef": 276,
+    "spd": 338
+   }
+  },
+  {
+   "id": "stats-05",
+   "kind": "stats",
+   "label": "蒂朵 性格 + 百分比加成",
+   "pet": 4377,
+   "build": {
+    "level": 100,
+    "iv": 31,
+    "ev": {},
+    "nature": 1,
+    "bonusPct": {
+     "hp": 10,
+     "spd": 10
+    }
+   },
+   "expect": {
+    "hp": 529,
+    "atk": 193,
+    "def": 266,
+    "spAtk": 284,
+    "spDef": 266,
+    "spd": 336
+   }
+  },
+  {
+   "id": "stats-06",
+   "kind": "stats",
+   "label": "始祖灵兽 Lv80 天赋20 带 EV",
+   "pet": 811,
+   "build": {
+    "level": 80,
+    "iv": 20,
+    "ev": {
+     "hp": 100,
+     "atk": 40
+    },
+    "nature": 2,
+    "bonus": {
+     "atk": 5,
+     "sp_def": 10
+    }
+   },
+   "expect": {
+    "hp": 334,
+    "atk": 195,
+    "def": 150,
+    "spAtk": 205,
+    "spDef": 175,
+    "spd": 168
+   }
+  },
+  {
+   "id": "dmg-01",
+   "kind": "damage",
+   "label": "草→普通，普通系物理，无本系",
+   "attacker": {
+    "pet": 1,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 2419,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10001,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 251,
+     "atk": 174,
+     "def": 166,
+     "spAtk": 126,
+     "spDef": 146,
+     "spd": 98
+    },
+    "defenderStats": {
+     "hp": 401,
+     "atk": 274,
+     "def": 206,
+     "spAtk": 186,
+     "spDef": 214,
+     "spd": 252
+    },
+    "damage": 24,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": false
+   }
+  },
+  {
+   "id": "dmg-02",
+   "kind": "damage",
+   "label": "同上，暴击",
+   "attacker": {
+    "pet": 1,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 2419,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10001,
+   "rng": [
+    0.01,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 251,
+     "atk": 174,
+     "def": 166,
+     "spAtk": 126,
+     "spDef": 146,
+     "spd": 98
+    },
+    "defenderStats": {
+     "hp": 401,
+     "atk": 274,
+     "def": 206,
+     "spAtk": 186,
+     "spDef": 214,
+     "spd": 252
+    },
+    "damage": 36,
+    "effectiveness": 1,
+    "crit": true,
+    "stab": false
+   }
+  },
+  {
+   "id": "dmg-03",
+   "kind": "damage",
+   "label": "草→普通，本系特殊，最小随机",
+   "attacker": {
+    "pet": 1,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 2419,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10002,
+   "rng": [
+    0.5,
+    0
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 251,
+     "atk": 174,
+     "def": 166,
+     "spAtk": 126,
+     "spDef": 146,
+     "spd": 98
+    },
+    "defenderStats": {
+     "hp": 401,
+     "atk": 274,
+     "def": 206,
+     "spAtk": 186,
+     "spDef": 214,
+     "spd": 252
+    },
+    "damage": 14,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-04",
+   "kind": "damage",
+   "label": "同上，最大随机",
+   "attacker": {
+    "pet": 1,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 2419,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10002,
+   "rng": [
+    0.5,
+    0.999
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 251,
+     "atk": 174,
+     "def": 166,
+     "spAtk": 126,
+     "spDef": 146,
+     "spd": 98
+    },
+    "defenderStats": {
+     "hp": 401,
+     "atk": 274,
+     "def": 206,
+     "spAtk": 186,
+     "spDef": 214,
+     "spd": 252
+    },
+    "damage": 16,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-05",
+   "kind": "damage",
+   "label": "圣灵→草，本系特殊 140",
+   "attacker": {
+    "pet": 300,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 1,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10999,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 381,
+     "atk": 256,
+     "def": 236,
+     "spAtk": 276,
+     "spDef": 236,
+     "spd": 256
+    },
+    "defenderStats": {
+     "hp": 251,
+     "atk": 174,
+     "def": 166,
+     "spAtk": 126,
+     "spDef": 146,
+     "spd": 98
+    },
+    "damage": 621,
+    "effectiveness": 2,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-06",
+   "kind": "damage",
+   "label": "圣灵→普通，本系物理 135",
+   "attacker": {
+    "pet": 300,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 2419,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10995,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 381,
+     "atk": 256,
+     "def": 236,
+     "spAtk": 276,
+     "spDef": 236,
+     "spd": 256
+    },
+    "defenderStats": {
+     "hp": 401,
+     "atk": 274,
+     "def": 206,
+     "spAtk": 186,
+     "spDef": 214,
+     "spd": 252
+    },
+    "damage": 197,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-07",
+   "kind": "damage",
+   "label": "神灵用圣灵技能，无双本系，打光次元",
+   "attacker": {
+    "pet": 5000,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 4377,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10999,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 501,
+     "atk": 256,
+     "def": 276,
+     "spAtk": 336,
+     "spDef": 276,
+     "spd": 316
+    },
+    "defenderStats": {
+     "hp": 481,
+     "atk": 176,
+     "def": 266,
+     "spAtk": 316,
+     "spDef": 266,
+     "spd": 306
+    },
+    "damage": 138,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": false
+   }
+  },
+  {
+   "id": "dmg-08",
+   "kind": "damage",
+   "label": "光次元本系特殊 150，打神灵",
+   "attacker": {
+    "pet": 4377,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 5000,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 35915,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 481,
+     "atk": 176,
+     "def": 266,
+     "spAtk": 316,
+     "spDef": 266,
+     "spd": 306
+    },
+    "defenderStats": {
+     "hp": 501,
+     "atk": 256,
+     "def": 276,
+     "spAtk": 336,
+     "spDef": 276,
+     "spd": 316
+    },
+    "damage": 50,
+    "effectiveness": 0.25,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-09",
+   "kind": "damage",
+   "label": "草本系特殊 130，打圣灵",
+   "attacker": {
+    "pet": 811,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 300,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 11957,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 401,
+     "atk": 216,
+     "def": 198,
+     "spAtk": 266,
+     "spDef": 240,
+     "spd": 220
+    },
+    "defenderStats": {
+     "hp": 381,
+     "atk": 256,
+     "def": 236,
+     "spAtk": 276,
+     "spDef": 236,
+     "spd": 256
+    },
+    "damage": 86,
+    "effectiveness": 0.5,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-10",
+   "kind": "damage",
+   "label": "自然圣灵本系物理 130，打轮回",
+   "attacker": {
+    "pet": 3291,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 3550,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 30378,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 481,
+     "atk": 306,
+     "def": 266,
+     "spAtk": 176,
+     "spDef": 260,
+     "spd": 292
+    },
+    "defenderStats": {
+     "hp": 491,
+     "atk": 336,
+     "def": 276,
+     "spAtk": 186,
+     "spDef": 276,
+     "spd": 316
+    },
+    "damage": 170,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-11",
+   "kind": "damage",
+   "label": "轮回本系物理 130，打自然圣灵",
+   "attacker": {
+    "pet": 3550,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 3291,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 31579,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 491,
+     "atk": 336,
+     "def": 276,
+     "spAtk": 186,
+     "spDef": 276,
+     "spd": 316
+    },
+    "defenderStats": {
+     "hp": 481,
+     "atk": 306,
+     "def": 266,
+     "spAtk": 176,
+     "spDef": 260,
+     "spd": 292
+    },
+    "damage": 192,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-12",
+   "kind": "damage",
+   "label": "神灵本系物理 150，打圣灵",
+   "attacker": {
+    "pet": 3986,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 300,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 33892,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 491,
+     "atk": 186,
+     "def": 296,
+     "spAtk": 336,
+     "spDef": 296,
+     "spd": 316
+    },
+    "defenderStats": {
+     "hp": 381,
+     "atk": 256,
+     "def": 236,
+     "spAtk": 276,
+     "spDef": 236,
+     "spd": 256
+    },
+    "damage": 140,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": true
+   }
+  },
+  {
+   "id": "dmg-13",
+   "kind": "damage",
+   "label": "Lv50 打 Lv100，等级压制",
+   "attacker": {
+    "pet": 1,
+    "level": 50,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 2419,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10001,
+   "rng": [
+    0.5,
+    0.5
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 130,
+     "atk": 89,
+     "def": 85,
+     "spAtk": 65,
+     "spDef": 75,
+     "spd": 51
+    },
+    "defenderStats": {
+     "hp": 401,
+     "atk": 274,
+     "def": 206,
+     "spAtk": 186,
+     "spDef": 214,
+     "spd": 252
+    },
+    "damage": 7,
+    "effectiveness": 1,
+    "crit": false,
+    "stab": false
+   }
+  },
+  {
+   "id": "dmg-14",
+   "kind": "damage",
+   "label": "暴击 + 最小随机",
+   "attacker": {
+    "pet": 1,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "defender": {
+    "pet": 2419,
+    "level": 100,
+    "iv": 31,
+    "ev": {}
+   },
+   "skill": 10001,
+   "rng": [
+    0.01,
+    0
+   ],
+   "expect": {
+    "attackerStats": {
+     "hp": 251,
+     "atk": 174,
+     "def": 166,
+     "spAtk": 126,
+     "spDef": 146,
+     "spd": 98
+    },
+    "defenderStats": {
+     "hp": 401,
+     "atk": 274,
+     "def": 206,
+     "spAtk": 186,
+     "spDef": 214,
+     "spd": 252
+    },
+    "damage": 33,
+    "effectiveness": 1,
+    "crit": true,
+    "stab": false
+   }
+  }
+ ]
+}

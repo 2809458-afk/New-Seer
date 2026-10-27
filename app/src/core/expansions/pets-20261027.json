@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-27",
+  "baseSha256": "c2f16c0487c93b3ee7a90d005724fc22c7028474833ae778468148be5ec13a54",
+  "source": [
+    {
+      "name": "20261026-v20261026g.zip",
+      "sha256": "160c3fde3e78d0f45d9f5b416d994787be6d7b4107af1ab39ee00916129d2e30"
+    },
+    {
+      "name": "20261027-v20261026k.zip",
+      "sha256": "1a5599ede6b53ca768273cdec941216f381c31d481ea7ea8344b74c9460188ef"
+    }
+  ],
+  "pets": [
+    3056,
+    3237,
+    3576,
+    3788,
+    3986,
+    4648
+  ],
+  "preservedBackportHunks": [
+    "@@ -27,12 +27,4 @@",
+    "@@ -123,38 +115,4 @@",
+    "@@ -3300,5 +3288,5 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -4053,5 +4081,4 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -4198,5 +4230,5 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -5026,15 +5639,4 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -5265,22 +5906,4 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -5757,7 +6396,5 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -6019,5 +6656,4 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -7041,36 +7710,13 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -7229,6 +7886,5 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -7243,6 +7899,6 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -8387,5 +9137,5 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];",
+    "@@ -9981,12 +10872,8 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];"
+  ],
+  "note": "k includes g pet implementations; retain local B01/B02/B04/B06/B08/B10; status reflection follows k central applyStatus handler",
+  "baseNormalizedSha256": "f33e3cdcfe42e0486ed9eb3298c003ee0e50a117e65c3b5ae0cb5e93ac0fa2c4",
+  "integrationFixes": [
+    "Only consume chance RNG for the four new true-damage/mark/exile effect kinds; unrelated effects keep frozen RNG stream",
+    "Keep B01 early clear pass; omit incoming duplicate late clear pass to avoid double logs and settlement"
+  ]
+}

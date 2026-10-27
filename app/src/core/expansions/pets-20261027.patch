@@ -1,0 +1,1406 @@
+diff --git a/web/js/battle.js b/app/.tmp/pet-import/merged-battle.js
+index 3c33d8c..b783109 100644
+--- a/web/js/battle.js
++++ b/app/.tmp/pet-import/merged-battle.js
+@@ -1155,8 +1155,12 @@
+ 
+     // 消除回合类效果的常见后续
+     if (/恢复自身全部体力/.test(text)) { out.push({ kind: 'heal', num: 1, den: 1 }); return; }
++    m = text.match(/3回合内若对手使用攻击技能则命中前令自身吸取对手最大体力的(\d+)\/(\d+)/);
++    if (m) { out.push({ kind: 'drainOnFoeAtk', turns: 3, num: parseInt(m[1], 10), den: parseInt(m[2], 10) }); return; }
+     m = text.match(/吸取对手最大体力的(\d+)\/(\d+)/);
+     if (m) { out.push({ kind: 'drainMax', num: parseInt(m[1], 10), den: parseInt(m[2], 10) }); return; }
++    m = text.match(/免疫下(\d+)次自身受到的异常状态/);
++    if (m) { out.push({ kind: 'statusGuardTimes', times: parseInt(m[1], 10) }); return; }
+     m = text.match(/己方免疫下(\d+)次受到的异常状态/);
+     if (m) { out.push({ kind: 'immuneStatus', turns: parseInt(m[1], 10) }); return; }
+     m = text.match(/令对手随机(\d+)项技能?PP值?归零/);
+@@ -1403,7 +1407,7 @@
+     m = text.match(/遇到天敌时(\d+)%令对手感染/);
+     if (m) { out.push({ kind: 'status', statusId: 'poison', chance: parseInt(m[1], 10), turns: 1, req: { type: 'disadvantage' } }); return; }
+     m = text.match(/^附加(\d+)点真实伤害/);
+-    if (m) { out.push({ kind: 'flat', value: parseInt(m[1], 10) }); return; }
++    if (m) { out.push({ kind: 'trueDamage', value: parseInt(m[1], 10) }); return; }
+     m = text.match(/对手不处于能力提升时令对手所有技能PP值-(\d+)/);
+     if (m) { out.push({ kind: 'ppDrain', chance: 100, amount: parseInt(m[1], 10), req: { type: 'targetStatNotUp' } }); return; }
+     m = text.match(/吸取对手(\d+)点固定体力[，,]自身体力低于(\d+)\/(\d+)时吸取效果翻倍/);
+@@ -1569,7 +1573,7 @@
+     m = text.match(/未击败对手则下回合自身所有技能先制\+(\d+)/);
+     if (m) { out.push({ kind: 'priorityBuff', turns: 1, value: parseInt(m[1], 10) }); return; }
+     m = text.match(/遇到天敌时附加(\d+)点真实伤害/);
+-    if (m) { out.push({ kind: 'flat', value: parseInt(m[1], 10), req: { type: 'disadvantage' } }); return; }
++    if (m) { out.push({ kind: 'trueDamage', value: parseInt(m[1], 10), req: { type: 'disadvantage' } }); return; }
+     m = text.match(/每次攻击提升(\d+)%的致命概率[，,]最高提升(\d+)%/);
+     if (m) { out.push({ kind: 'critRamp', base: parseInt(m[1], 10), inc: parseInt(m[1], 10), cap: parseInt(m[2], 10) }); return; }
+     m = text.match(/若对手处于能力下降状态则(\d+)%概率冰封/);
+@@ -2084,6 +2088,12 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     736: function (a) { return [{ kind: 'clear', target: 'foe', which: 'positive' }, { kind: 'skillBlock', turns: num(a[0]) || 2, req: { type: 'clearSuccess' } }]; },
+     // 4 回合每回合用技能吸取对手 1/3 最大体力
+     971: function (a) { return [{ kind: 'drainMax', num: 1, den: num(a[2]) || 3 }]; },
++    1528: function (a) { return [{ kind: 'trueDamage', value: num(a[0]) || 50 }]; },
++    1530: function (a) { return [{ kind: 'trueDamage', value: num(a[0]) || 200, req: { type: 'disadvantage' } }]; },
++    1531: function (a) { return [{ kind: 'teFixedUse', turns: num(a[0]) || 3, value: num(a[1]) || 300 }]; },
++    1532: function () { return [{ kind: 'ppZeroPerMark', amount: 1 }]; },
++    1533: function (a) { var th = num(a[0]) || 350; return [{ kind: 'lowTrueDamage', threshold: th, value: th }]; },
++    1534: function () { return [{ kind: 'exiledPpDrain', amount: 1 }]; },
+     // N 回合内对手无法通过技能回血
+     679: function (a) { return [{ kind: 'healBlock', turns: num(a[0]) || 3 }]; },
+     // 附加自身最大体力 N% 百分比伤害并回等量
+@@ -2313,6 +2323,9 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     93: function (a) { return [{ kind: 'flat', value: num(a[1]) || 200, chance: num(a[0]) || 10 }]; },
+     // 4 回合内对手使用属性技能 → 对手全技能 PP -N
+     861: function (a) { return [{ kind: 'attrPunishPP', turns: num(a[0]) || 4, amount: num(a[1]) || 2 }]; },
++    // 3788 虚空桎梏：3 回合内若对手使用攻击技能则命中前吸取其最大体力 1/N（只对攻击技能，不是无条件吸取）
++    1269: function (a) { return [{ kind: 'drainOnFoeAtk', turns: num(a[0]) || 3, num: 1, den: num(a[1]) || 3 }]; },
++    1440: function (a) { return [{ kind: 'statusGuardTimes', times: num(a[0]) || 1 }]; },
+     // 消耗所有神耀能量，每层威力 +N（满层不再消耗）
+     862: function (a) { return [{ kind: 'powerPerStack', per: num(a[0]) || 50, keepAtMaxStacks: 6 }]; },
+     // 后出手则下 1 回合对手攻击技能无效
+@@ -2396,7 +2409,9 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     // N 回合每回合回血 1/M 并造成等量百分比伤害
+     532: function (a) { return [{ kind: 'useHeal', turns: num(a[0]) || 5, num: 1, den: num(a[1]) || 3, percent: true }]; },
+     // 降低对手所有技能 N 点 PP，若所选技能 PP 为 0 则其本回合无法行动
+-    39: function (a) { return [{ kind: 'ppDrain', amount: num(a[0]) || 2, chance: 100, lockIfZero: true }]; },
++    39: function (a) { return [{ kind: 'ppDrain', amount: num(a[1]) || 1, chance: num(a[0]) || 100, lockIfZero: true }]; },
++    430: function (a) { return [{ kind: 'clear', target: 'foe', which: 'positive' }, { kind: 'stat', target: 'self', stat: STAT_BY_IDX[num(a[0])] || 'atk', stages: num(a[1]) || 1, chance: 100, req: { type: 'clearSuccess' } }]; },
++    707: function (a) { return [{ kind: 'useHeal', turns: num(a[0]) || 4, num: 1, den: num(a[1]) || 3, lowHalf: num(a[2]) || 3 }]; },
+   };
+ 
+   /** 按效果编号生成 fx：内置 spec 优先，其次 js/effect-ids.js 的自动模板；都没有返回 null 走文本解析 */
+@@ -2552,6 +2567,13 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+   }
+ 
+   function parseSoulmark(desc) {
++    var out = [];
++    if (!desc) return out;
++    // 3788 混元天尊：辛之契约 / 辛之印记 整段识别（普通分句会把「辛」的条件拆坏）
++    if (/召唤辛/.test(String(desc)) && /辛之印记/.test(String(desc))) {
++      out.push({ kind: 'hunyuan' });
++      return out;
++    }
+     var out = [];
+     if (!desc) return out;
+     // 天启帝君 3550：帝君之罚/赐/援/御/阵/威/殒 整段识别（条件拆段会吃掉「御/威/殒」）
+@@ -3179,6 +3201,10 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       m = t.match(/开场(\d+)回合内所有直接攻击都将额外附带(\d+)%概率(?:使|令)对手(中毒|烧伤|冻伤|麻痹|混乱|石化|流血|易燃)/);
+       if (m) { out.push({ kind: 'entryStatus', turns: parseInt(m[1], 10), chance: parseInt(m[2], 10), statusId: STATUS_WORD[m[3]] }); return; }
+       if (/免疫下1次受到的技能伤害/.test(t)) { out.push({ kind: 'onHitImmune' }); return; }
++      // 3237 大威势明王魂印
++      var mDw1 = t.match(/自身受到的攻击伤害高于(\d+)时下回合自身受到的攻击伤害减少(\d+)%/);
++      if (mDw1) { out.push({ kind: 'mwGuard', threshold: parseInt(mDw1[1], 10), pct: parseInt(mDw1[2], 10) }); return; }
++      if (/自身被击败后[，,]?将对手体力降为1点/.test(t)) { out.push({ kind: 'mwDeath' }); return; }
+       if (/受到(?:的)?(?:攻击)?伤害(?:减半|降低一半)/.test(t)) { out.push({ kind: 'taken', value: 0.5 }); return; }
+       m = t.match(/(?:受到的)?所有?攻击伤害减少(\d+)%/);
+       if (m) { out.push({ kind: 'taken', value: 1 - parseInt(m[1], 10) / 100 }); return; }
+@@ -3206,6 +3232,10 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+         if (m[3]) out.push({ kind: 'endPpRestore', value: parseInt(m[3], 10) });
+         return;
+       }
++      // 3576 大轮明王魂印
++      if (/每次对手攻击技能命中前令对手全属性-1/.test(t)) { out.push({ kind: 'mwAtkStatDown' }); return; }
++      if (/战斗阶段结束时若自身处于异常状态或能力下降状态/.test(t)) { out.push({ kind: 'mwPhaseTransfer' }); return; }
++      if (/己方下只精灵出战时全属性\+1且免疫下1次受到的异常状态/.test(t)) { out.push({ kind: 'mwDeathBless' }); return; }
+       if (/免疫受到的异常状态和能力下降状态|免疫异常状态和能力下降状态/.test(t)) {
+         out.push({ kind: 'immuneStatus' });
+         out.push({ kind: 'immuneStat' });
+@@ -3305,10 +3335,12 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     var critRate = skill.crit_rate == null ? 6.25 : num(skill.crit_rate);
+     critRate += (actor.critBonus || 0);
+     critRate += (o.critAdd || 0);
++    if (actor.xinMarkActive) critRate += 100;
+     if (actor.critBuffTurns > 0) critRate = 100;
+     if (actor.critTimed && actor.critTimed.turns > 0) critRate += actor.critTimed.add;
+     critRate *= (1 - Math.max(0, Math.min(100, target.critResist || 0)) / 100);
+     var crit = !!o.forceCrit || (o.rng ? o.rng() : Math.random()) * 100 < critRate;
++    if (skill.id === 33893 && !(target.holyMarks > 0)) crit = true;
+     if (crit && target.critImmune && (o.rng ? o.rng() : Math.random()) * 100 < target.critImmune) {
+       crit = false;
+     }
+@@ -3342,6 +3374,9 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     dmg *= condMul(target, 'taken', tgtCtx);
+     // 烧伤：物理攻击伤害减半
+     if (actor.status && actor.status.id === 'burn' && !special) dmg *= 0.5;
++    if (skill.id === 14623 && actor.status && ['burn', 'frost', 'poison'].indexOf(actor.status.id) >= 0) dmg *= 2;
++    if (skill.id === 14486 && target.status && target.status.id === 'fear') dmg *= 2;
++    if (skill.id === 37381 && target.status && target.status.id === 'starFire') dmg *= (actor.hp < target.hp ? 2.5 : 1.75);
+     if (actor.damageBuff && actor.damageBuff.turns > 0) {
+       // 带条件的增伤（如「自身处于能力提升状态时造成的伤害翻倍」）必须在结算时判定
+       if (!actor.damageBuff.req || checkCond(actor.damageBuff.req, actxCtx)) dmg *= actor.damageBuff.mul;
+@@ -3358,6 +3393,12 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     if (actor.junZhen && actor.deadAllies) dmg *= 1 + 0.1 * actor.deadAllies;
+     if (target.junZhen && target.deadAllies) dmg *= 1 - 0.1 * target.deadAllies;
+     if (actor.auraDealtMul != null && actor.auraDealtMul < 1) dmg *= actor.auraDealtMul;
++    if (actor.hySoul && actor.xinAlive && actor.xinMax > 0) {
++      dmg *= 1 + Math.floor((1 - actor.xinHp / actor.xinMax) * 5) * 0.1;
++    }
++    if (actor.hySoul && actor.xinDead && actor.currentSkillId === 32912) dmg *= 1.5;
++    if (actor.hyNextAtkMul && actor.hyNextAtkMul !== 1) dmg *= actor.hyNextAtkMul;
++    if (target.vulnTaken && target.vulnTaken.turns > 0) dmg *= target.vulnTaken.mul;
+     if (actor.zhanTurns > 0 && actor.zhanBuff) {
+       var zr = (typeof o.rng === 'function') ? o.rng() : 0.5;
+       dmg *= 1 + (actor.zhanBuff.low + zr * (actor.zhanBuff.high - actor.zhanBuff.low)) / 100;
+@@ -3465,6 +3506,10 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     if (c.starPhil > 0) arr.push({ text: '星哲(' + c.starPhil + ')', tone: 'good', tip: KEYWORD_DEFS['星哲'] });
+     if (c.starDialCfg && c.starDial > 0) arr.push({ text: '星盘 ' + c.starDial + '/' + c.starDialCfg.maxTicks + (c.starReturn ? ' 回返' : ''), tone: 'good', tip: KEYWORD_DEFS['星盘'] });
+     if (c.starSea && c.starSea.turns > 0) arr.push({ text: '星海之浸(' + c.starSea.turns + ')', tone: 'bad', tip: KEYWORD_DEFS['星海之浸'] });
++    if (c.xinSummoned) arr.push({ text: c.xinAlive ? ('辛 ' + c.xinHp + '/' + c.xinMax) : '辛已消散', tone: c.xinAlive ? 'good' : 'bad' });
++    if (c.xinMarkActive) arr.push({ text: '辛之印记', tone: 'good' });
++    if (c.vulnTaken && c.vulnTaken.turns > 0) arr.push({ text: '受伤翻倍(' + c.vulnTaken.turns + ')', tone: 'bad' });
++    if (c.xinEndPct) arr.push({ text: '辛之怒待发', tone: 'good' });
+     if (c.starRageChanceBonus > 0) arr.push({ text: '星怒概率+' + c.starRageChanceBonus + '%(' + c.starRageChanceTurns + ')', tone: 'good', tip: KEYWORD_DEFS['星皇之怒'] });
+     if (c.starRageDouble > 0) arr.push({ text: '星怒翻倍×' + c.starRageDouble, tone: 'good', tip: KEYWORD_DEFS['星皇之怒'] });
+     if (c.starRagePowerKeep > 0) arr.push({ text: '星怒威力保留×' + c.starRagePowerKeep, tone: 'good', tip: KEYWORD_DEFS['星皇之怒'] });
+@@ -3830,6 +3875,25 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     this.dmgCounter = 0;
+     this.dtzfPending = false;       // 本回合被击败，待回合结束清算
+     this.dtzfDone = false;          // 「渡」已经清算过
++    this.hySoul = false;             // 3788 混元天尊魂印（辛之契约）
++    this.xinSummoned = false;        // 是否已召唤「辛」
++    this.xinMax = 0;
++    this.xinHp = 0;
++    this.xinAlive = false;
++    this.xinDead = false;
++    this.xinMarkActive = false;      // 辛之印记本次在场生效
++    this.xinImmuneFixedPct = false;  // 辛消散后：免疫固定/百分比伤害
++    this.xinDodgePct = 0;            // 己方每阵亡 1 只 → 6% 闪避
++    this.xinEndPct = false;          // 辛之怒：回合末 1/4 百分比伤害待结算
++    this.hyFirstEntryUsed = false;   // 首发登场效果是否已触发
++    this.hyFoeHadUp = false;         // 神泣：使用前对手是否有能力提升
++    this.hyNextAtkMul = 1;           // 下 1 次攻击增伤
++    this.vulnTaken = null;           // { turns, mul, from } 受到的伤害翻倍
++    this.vkDrain = 0;                // 虚空桎梏：余下回合（对手攻击前吸取 1/3）
++    this.vkGuard = 0;                // 虚空桎梏：余下回合（封锁对手属性技）
++    this.qyBless = null;             // 3986 神之佑：{turns,chance}
++    this.teFixedUse = null;          // 3986 神之束缚：{turns,value}
++    this.fixedPctReduce = null;      // 3986 神之宣告：{turns,pct} 固伤/百分比减伤
+     this.iv = entry.iv == null ? 31 : entry.iv;
+     if (this.pet.id === 4676) this.mistikeSoul = true;
+     if (this.pet.id === 3033) this.dtzfSoul = true;
+@@ -3844,6 +3908,11 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     this.passives.forEach(function (p) {
+       switch (p.kind) {
+         case 'taken': self.takenMul *= p.value; break;
++        case 'mwGuard': self.mwGuard = { threshold: p.threshold, pct: p.pct }; break;
++        case 'mwDeath': self.mwDeath = true; break;
++        case 'mwAtkStatDown': self.soul3576AtkDown = true; break;
++        case 'mwPhaseTransfer': self.soul3576Phase = true; break;
++        case 'mwDeathBless': self.soul3576DeathBless = true; break;
+         case 'dealt': self.dealtMul *= p.value; break;
+         case 'firstDealt': self.firstDealt *= p.value; break;
+         case 'critDamage': self.critDamage *= p.value; break;
+@@ -3859,6 +3928,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+         case 'mistikeEntry': self.mistikeSoul = true; break;
+         case 'mistikeReact': self.mistikeSoul = true; break;
+         case 'dtzfSoul': self.dtzfSoul = true; break;
++        case 'hunyuan': self.hySoul = true; break;
+         case 'leiSteal': self.leiSteal = true; break;
+         case 'leiRoundToOne': self.leiRoundToOne = true; break;
+         case 'leiEndBoost': self.leiEndBoost = { atk: p.atk, spd: p.spd, acc: p.acc }; break;
+@@ -4069,6 +4139,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     this.benchAuras = { me: null, foe: null }; // 队伍建好后再收集（见 refreshBenchAuras）
+     this.sideBuff = { me: null, foe: null }; // 自爆技能留给下一只精灵的强化
+     this.deathGuard = { me: null, foe: null }; // 被击败魂印留给下一只的减伤
++    this.xinMark = { me: null, foe: null };  // 3788 辛之印记：己方下 3 回合
+     this.lastCrit = null;                    // 本回合谁打出过会心一击
+ 
+     // 双方各带一套基础道具
+@@ -4169,6 +4240,10 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       }
+       target.dodgeFailedThisTurn = true;
+     }
++    if (target.xinDodgePct > 0 && this.rng() * 100 < target.xinDodgePct) {
++      this.push(target.pet.name + ' 的魂印闪避了这次技能！');
++      return false;
++    }
+     if (this.field && this.field.mustHit) return true;
+     if (skill && skill.must_hit) return true;
+     if (actor && actor.missTurns > 0) {
+@@ -4573,6 +4648,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     if (actor.healBlock > 0) return 0;
+     var uh = Math.min(Math.floor(actor.maxHp * h.num / (h.den || 1)), actor.maxHp - actor.hp);
+     if (h.lowHalf && actor.hp * (h.lowHalf || 2) < actor.maxHp) uh = Math.min(uh * 2, actor.maxHp - actor.hp);
++    if (actor.healDown && actor.healDown.turns > 0) uh = Math.floor(uh * (100 - actor.healDown.pct) / 100);
+     if (uh <= 0) return 0;
+     actor.hp += uh;
+     this.push(this.tag(side) + '回合类效果回复了 ' + uh + ' 点体力（剩 ' + h.turns + ' 回合）。');
+@@ -4586,6 +4662,544 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     return uh;
+   };
+ 
++  /* ===== 3788 混元天尊：辛之契约 ===== */
++  var HERO_TEMPLE_IDS = [2987, 3291, 3311, 3550, 3788];
++
++  /** 辛之印记：己方下 3 回合免疫异常/能力下降/固定/百分比，暴击率 +100% */
++  Battle.prototype.applyXinMark = function (c, side) {
++    if (!c) return;
++    var m = this.xinMark && this.xinMark[side];
++    if (m && m.turns > 0) {
++      c.xinMarkActive = true;
++      c.immuneStatus = Math.max(c.immuneStatus || 0, 1);
++      c.immuneStat = Math.max(c.immuneStat || 0, 1);
++    } else {
++      c.xinMarkActive = false;
++    }
++  };
++
++  /** 辛替混元天尊抵挡 60% 伤害（含固定/百分比），返回剩余伤害 */
++  Battle.prototype.xinAbsorb = function (c, dmg) {
++    if (!c || !c.xinAlive || dmg <= 0) return dmg;
++    var absorb = Math.max(1, Math.floor(dmg * 0.6));
++    if (absorb > c.xinHp) absorb = c.xinHp;
++    c.xinHp -= absorb;
++    this.push(this.tag(c.side) + '「辛」替 ' + c.pet.name + ' 抵挡了 ' + absorb + ' 点伤害（辛 ' + c.xinHp + '/' + c.xinMax + '）。');
++    if (c.xinHp <= 0) {
++      c.xinHp = 0;
++      c.xinAlive = false;
++      this.xinDeath(c);
++    }
++    return dmg - absorb;
++  };
++
++  /** 辛消散：100% 驱逐对手，自身开始免疫固定/百分比伤害与能力下降 */
++  Battle.prototype.xinDeath = function (c) {
++    if (!c) return;
++    c.xinDead = true;
++    c.xinImmuneFixedPct = true;
++    c.permImmuneStat = true;
++    this.push(this.tag(c.side) + '「辛」消散！' + c.pet.name + ' 免疫固定伤害、百分比伤害与能力下降。');
++    this.forceSwitch(c.side === 'me' ? 'foe' : 'me');
++  };
++
++  /** 驱逐：随机换上对手存活的后备精灵 */
++  Battle.prototype.forceSwitch = function (side) {
++    var s = this[side];
++    if (!s || this.over) return false;
++    var pool = [];
++    for (var i = 0; i < s.team.length; i++) {
++      if (i !== s.active && s.team[i] && s.team[i].hp > 0) pool.push(i);
++    }
++    if (!pool.length) {
++      this.push(this.tag(side) + '没有可替换的精灵，驱逐没有触发。');
++      return false;
++    }
++    var idx = pool[Math.floor(this.rng() * pool.length)];
++    var oldName = s.team[s.active] ? s.team[s.active].pet.name : '';
++    this.push(this.tag(side) + oldName + ' 被驱逐了！');
++    return this.switchIn(side, idx);
++  };
++
++  /** 登场：召唤辛 + 首发效果 */
++  Battle.prototype.hunyuanEnter = function (c) {
++    if (!c.hySoul) return;
++    if (!c.xinSummoned) {
++      c.xinSummoned = true;
++      c.xinMax = c.maxHp;
++      c.xinHp = c.maxHp;
++      c.xinAlive = true;
++      this.push(this.tag(c.side) + c.pet.name + ' 与「辛」缔结契约：辛的体力 ' + c.xinHp + '。');
++    }
++    if (!c.hyFirstEntryUsed) {
++      c.hyFirstEntryUsed = true;
++      // 首发效果延后到第 1 回合开始，等对手也完成登场后再结算
++      c.hyFirstPending = this.turn === 0;
++    }
++  };
++
++  /** 回合开始：辛的增伤 / 异常清 PP / 能力下降标记 / 阵亡闪避 */
++  Battle.prototype.hunyuanTurnStart = function (side, c, foe) {
++    if (!c || !c.hySoul || !foe) return;
++    if (c.hyFirstPending) {
++      c.hyFirstPending = false;
++      this.push('混元天尊首发：对手本回合无法主动切换精灵。');
++      if (this.rng() * 100 < 50) {
++        this.forceSwitch(foe.side);
++        foe = this.activeOf(side === 'me' ? 'foe' : 'me') || foe;
++      }
++      if (foe && foe.hp > 0) foe.blockSwitch = Math.max(foe.blockSwitch || 0, 1);
++    }
++    var dead = (this[side].team || []).filter(function (x) { return x && x.hp <= 0; }).length;
++    var dodge = dead * 6;
++    if (HERO_TEMPLE_IDS.indexOf(foe.pet.id) >= 0) dodge *= 2;
++    c.xinDodgePct = dodge;
++    if (c.xinAlive && c.xinMax > 0) {
++      var lostSteps = Math.floor((1 - c.xinHp / c.xinMax) * 5);
++      if (lostSteps > 0) {
++        this.push(this.tag(side) + '辛已损失 ' + (lostSteps * 20) + '% 体力：本回合攻击伤害 +' + (lostSteps * 10) + '%。');
++      }
++    }
++    if (c.xinAlive && c.status) {
++      var pool = foe.skills.filter(function (sl) { return sl.pp > 0; });
++      if (pool.length) {
++        var pick = pool[Math.floor(this.rng() * pool.length)];
++        pick.pp = 0;
++        this.push(this.tag(side) + '辛之守护：自身处于异常，' + foe.pet.name + ' 的「' + pick.name + '」PP 归零。');
++      }
++    }
++    if (c.xinAlive && hasStatDown(c)) {
++      c.xinEndPct = true;
++      this.push(this.tag(side) + '辛之怒：自身处于能力下降，回合末附加对手最大体力 1/4 的百分比伤害。');
++    }
++  };
++
++  /** 3788 技能：按技能 id 修正解析器拆不出的条件，交给 afterSkill3788 结算 */
++  Battle.prototype.hyFilterFx = function (actor, target, skill, fx) {
++    if (skill.id === 32907) {
++      actor.hyFoeHadUp = hasStatUp(target);
++      fx = fx.filter(function (e) { return e.kind !== 'status'; });
++    } else if (skill.id === 32911) {
++      fx = fx.filter(function (e) { return e.kind !== 'drainMax' && e.kind !== 'status' && e.kind !== 'invertStages'; });
++    } else if (skill.id === 32912) {
++      fx = fx.filter(function (e) { return e.kind !== 'stat' && e.kind !== 'drain'; });
++    } else if (skill.id === 26543) {
++      fx = fx.filter(function (e) { return e.kind !== 'drainMax' && e.kind !== 'nextGuard'; });
++      fx.forEach(function (e) { if (e.kind === 'stat') e.hyLowHalf = true; });
++    }
++    return fx;
++  };
++
++  /** 3788 技能结算（条件效果 / 辛的状态分支） */
++  Battle.prototype.afterSkill3788 = function (actor, target, skill, ctx) {
++    if (!actor || actor.pet.id !== 3788) return;
++    if (ctx && ctx.dealt > 0 && actor.hyNextAtkMul > 1 && skill.id !== 32911) actor.hyNextAtkMul = 1;
++
++    // 神泣：断回合成功 → 2 回合受伤翻倍；清强化成功 → 疲惫；辛消散 → 先制 +1 且 25% 暴击
++    if (skill.id === 32907) {
++      if (ctx.hyClearedRound) {
++        target.vulnTaken = { turns: 2, mul: 2, from: this.turn };
++        this.push('神泣断回合成功：' + target.pet.name + ' 下 2 回合受到的伤害翻倍。');
++      }
++      if (actor.hyFoeHadUp && target.hp > 0 && !hasStatUp(target) && !target.status) {
++        this.applyStatus(target, 'tired', 1, '对手');
++      }
++      return;
++    }
++    // 末世丧钟：5% 秒杀（未触发时全属性 -1 已由通用解析结算）
++    if (skill.id === 32910) {
++      if (target.hp > 0 && this.rng() * 100 < 5) {
++        target.hp = 0;
++        this.push('末世丧钟：一击必杀！' + target.pet.name + ' 倒下了。');
++      }
++      return;
++    }
++    // 天尊堕世斩
++    if (skill.id === 32911) {
++      var dealt = ctx.dealt || 0;
++      if (dealt > 300 && target.hp > 0) {
++        var dmgDrain = Math.max(1, Math.floor(target.maxHp / 3));
++        var taken = this.directDamage(target, dmgDrain, 'percent');
++        var dh = Math.min(taken, actor.maxHp - actor.hp);
++        if (actor.healBlock <= 0 && dh > 0) actor.hp += dh;
++        this.push('天尊堕世斩伤害高于 300：吸取对手最大体力 1/3（对手 -' + taken + '，自身 +' + Math.max(0, dh) + '）。');
++      } else if (dealt < 300) {
++        this.applyStatus(target, 'tired', 1, '对手');
++        if (!(target.status && target.status.id === 'tired')) {
++          actor.hyNextAtkMul = 2;
++          this.push('未令对手疲惫：自身下 1 次攻击伤害额外提升 100%。');
++        }
++      }
++      if (actor.xinAlive) {
++        var inv = false;
++        SIX_STATS.forEach(function (k) { if (actor.stages[k] < 0) { actor.stages[k] = clampStage(-actor.stages[k]); inv = true; } });
++        if (inv) {
++          target.skillBlock = Math.max(target.skillBlock || 0, 2);
++          this.push('辛之佑护：反转自身能力下降，对手 2 回合内属性技能失效。');
++        }
++      }
++      return;
++    }
++    // 混沌·生死判
++    if (skill.id === 32912) {
++      if (target.hp <= 0) {
++        if (this.rng() * 100 < 50) {
++          if (actor.healBlock <= 0) actor.hp = actor.maxHp;
++          this.push('混沌·生死判击败对手：恢复全部体力。');
++        } else {
++          SIX_STATS.forEach(function (k) { if (actor.noStatUp <= 0) actor.stages[k] = clampStage(actor.stages[k] + 1); });
++          this.push('混沌·生死判未触发回血：全属性 +1。');
++        }
++      }
++      if (target.hp > 0) {
++        actor.priorityBuff = { turns: 2, value: 2 };
++        this.push('混沌·生死判未击败对手：下 2 回合先制 +2。');
++      }
++      if (actor.xinAlive && ctx.dealt > 0) {
++        var hl = Math.min(Math.floor(ctx.dealt * 0.5), actor.maxHp - actor.hp);
++        if (actor.healBlock <= 0 && hl > 0) actor.hp += hl;
++        this.push('辛之契约：造成伤害的 50% 恢复体力（' + Math.max(0, hl) + '）。');
++      }
++      return;
++    }
++    // 虚空桎梏
++    if (skill.id === 26542) {
++      actor.vkGuard = Math.max(actor.vkGuard || 0, 3);
++      var lockChance = actor.xinAlive ? 50 : 100;
++      if (this.rng() * 100 < lockChance) {
++        actor.starRoundLock = Math.max(actor.starRoundLock || 0, 2);
++        this.push('虚空桎梏：辛之力量使自身 2 回合内回合类效果无法被消除。');
++      }
++      this.push('虚空桎梏：免疫下 2 次异常；3 回合内对手攻击前吸取其最大体力 1/3。');
++      return;
++    }
++    // 天造草昧
++    if (skill.id === 26543) {
++      actor.teDrain = { turns: 4, num: 1, den: 3, lowHalf: 2 };
++      this.push('天造草昧：4 回合内每回合吸取对手最大体力 1/3（自身体力低于 1/2 时翻倍）。');
++      if (actor.xinDead) {
++        actor.nextGuard = { times: 1, pct: 50 };
++        this.push('辛已消散：自身下 1 次受到的攻击伤害减少 50%。');
++      }
++      return;
++    }
++  };
++
++  /** 3986 启灵元神：按技能 id 修正通用解析错项 */
++  Battle.prototype.qyFilterFx = function (actor, target, skill, fx) {
++    fx = fx.map(function (e) { return Object.assign({}, e); });
++    if (skill.id === 14623) {
++      fx = fx.filter(function (e) { return e.kind !== 'status'; });
++    } else if (skill.id === 27019) {
++      // 1346 的「每回合 50% 自身全属性+1，未触发则对手全属性-1」交给 qyBless 逐回合结算
++      fx = fx.filter(function (e) { return !(e.kind === 'stat' && e.target === 'foe' && e.stages > 0); });
++    } else if (skill.id === 27021) {
++      fx = fx.filter(function (e) { return e.kind !== 'drainMax' && e.kind !== 'takenTurns'; });
++      if (target.holyMarks > 0) fx.forEach(function (e) { if (e.kind === 'stat') e.stages = 2; });
++    }
++    return fx;
++  };
++
++  /** 3986 启灵元神：专用技能结算 */
++  Battle.prototype.afterSkill3986 = function (actor, target, skill, ctx) {
++    if (!actor || actor.pet.id !== 3986) return;
++    if (skill.id === 27019) {
++      actor.qyBless = { turns: 3, chance: 50 };
++      this.push('神之佑：3 回合内每回合 50% 自身全属性 +1，未触发则对手全属性 -1。');
++    } else if (skill.id === 27020) {
++      if (target.hp > 0 && !(target.status && target.status.id === 'tired')) {
++        target.skillBlock = Math.max(target.skillBlock || 0, 2);
++        this.push('神之束缚未令对手疲惫：对手 2 回合内属性技能无效。');
++      }
++      if (target.hp > 0) {
++        var f0 = this.directDamage(target, 300, 'fixed');
++        if (f0 <= 0) {
++          f0 = this.directDamage(target, 300, 'true');
++          this.push('神之束缚施放当回合：固定伤害未生效，改附加 ' + f0 + ' 点真实伤害。');
++        } else {
++          this.push('神之束缚施放当回合：附加 ' + f0 + ' 点固定伤害。');
++        }
++      }
++    } else if (skill.id === 27021) {
++      actor.teDrain = { turns: 4, num: 1, den: 3, lowHalf: 2 };
++      actor.fixedPctReduce = { turns: 3, pct: 30 };
++      this.push('神之宣告：4 回合内每回合吸取 1/3；3 回合内固定/百分比伤害 -30%。');
++    } else if (skill.id === 33893) {
++      if (target.hp > 0) actor.priorityBuff = { turns: 2, value: 2 };
++    }
++    // 33891 真神信仰：雄性目标增伤 100% 暂不实现（按需求关闭），只保留非雄性 50% 疲惫
++  };
++
++  /** 4648 星光·鲁斯王：按技能 id 修正通用解析 */
++  Battle.prototype.lsFilterFx = function (actor, target, skill, fx) {
++    fx = fx.map(function (e) { return Object.assign({}, e); });
++    if (skill.id === 10020 || skill.id === 37385) {
++      fx = fx.filter(function (e) { return e.kind !== 'reflectNext'; });
++    } else if (skill.id === 28737) {
++      actor.lsPreHp = actor.hp;
++    } else if (skill.id === 37386 || skill.id === 37387) {
++      fx = fx.filter(function (e) { return e.kind !== 'status'; });
++    } else if (skill.id === 37381) {
++      fx = fx.filter(function (e) { return e.kind !== 'stat' && e.kind !== 'flatByMaxHp'; });
++      fx.push({ kind: 'multiHit', min: 5, max: 10 });
++    } else if (skill.id === 28738) {
++      if (actor.hp * 2 > actor.maxHp) fx.forEach(function (e) { if (e.kind === 'stat') e.stages = 2; });
++    }
++    return fx;
++  };
++
++  /** 4648 星光·鲁斯王：专用技能结算 */
++  Battle.prototype.afterSkill4648 = function (actor, target, skill, ctx) {
++    if (!actor || actor.pet.id !== 4648) return;
++    if (skill.id === 10020 || skill.id === 37385) {
++      var taken = (actor.dmgTakenTurn && actor.dmgTakenTurn.turn === this.turn) ? actor.dmgTakenTurn.amount : 0;
++      if (taken > 0 && target.hp > 0) {
++        var back = this.applyDamage(target.side, taken * 2, { attack: true });
++        this.push('克制：将本回合所受攻击伤害的 200% 反弹给对手（' + back + '），按攻击伤害结算。');
++        if (skill.id === 37385 && back > 0 && actor.healBlock <= 0) {
++          var hl = Math.min(back, actor.maxHp - actor.hp);
++          if (hl > 0) { actor.hp += hl; this.push('星光·克制：恢复等量体力 ' + hl + ' 点。'); }
++        }
++      } else {
++        this.push('克制：本回合尚未受到攻击伤害，不产生反弹伤害。');
++      }
++      if (skill.id !== 37385) return;
++      if ((ctx.dealt || 0) < 200) {
++        actor.nextFlatReduce = 300;
++        this.push('星光·克制：造成伤害低于 200，自身下 1 次受到的攻击伤害降低 300 点。');
++      }
++    } else if (skill.id === 28737) {
++      var down = false;
++      SIX_STATS.forEach(function (k) {
++        if (actor.stages[k] < 0) { actor.stages[k] = 0; down = true; }
++      });
++      if (down) {
++        actor.priorityBuff = { turns: 2, value: 2 };
++        this.push('星光·水天一色：解除自身能力下降，下 2 回合先制 +2。');
++      }
++      if (actor.lsPreHp != null && actor.lsPreHp * 2 < actor.maxHp) {
++        var healAmt = actor.maxHp - actor.lsPreHp;
++        var pd = this.directDamage(target, healAmt, 'percent');
++        this.push('星光·水天一色：体力低于 1/2，造成等量百分比伤害（' + pd + '）。');
++      }
++      actor.lsPreHp = null;
++    } else if (skill.id === 37386) {
++      if (actor.status) {
++        actor.status = null;
++        this.applyStatus(target, 'freeze', 2, '对手');
++        this.push('星光·惊涛骇浪：解除自身异常，令对手冰封。');
++      }
++    } else if (skill.id === 37383) {
++      if (ctx && ctx.clearSuccess) {
++        target.dealtCap = { turns: 2, value: 200 };
++        this.push('星光·闪击：消除成功，对手 2 回合内造成的攻击伤害不超过 200。');
++      } else {
++        target.healDown = { turns: 2, pct: 50 };
++        this.push('星光·闪击：对手无能力提升，2 回合内其体力恢复效果减少 50%。');
++      }
++    } else if (skill.id === 37387) {
++      if (this.rng() * 100 < 50) {
++        this.applyStatus(target, 'freeze', 2, '对手');
++      } else {
++        target.priorityDown = { turns: 2, value: 2 };
++        this.push('星光·排山倒海：未触发冰封，对手下 2 回合先制 -2。');
++      }
++    } else if (skill.id === 37381) {
++      if (ctx && ctx.clearSuccess) {
++        target.missTurns = Math.max(target.missTurns || 0, 2);
++        this.push('星光·浪打千击：消除回合效果成功，对手 2 回合内攻击技能 MISS。');
++      }
++      var hitsN = this.lastHits || 1;
++      var upN = 0;
++      for (var hi = 0; hi < hitsN; hi++) {
++        if (this.rng() < 0.2) {
++          actor.stages.atk = clampStage(actor.stages.atk + 1);
++          actor.stages.spd = clampStage(actor.stages.spd + 1);
++          actor.stages.acc = clampStage(actor.stages.acc + 1);
++          upN++;
++        }
++      }
++      if (upN) this.push('星光·浪打千击：' + hitsN + ' 段中 ' + upN + ' 次触发自身攻击/速度/命中 +1。');
++      actor.lsRamp = Math.min(3, (actor.lsRamp || 0));
++      var pct = Math.min(40, 20 + 10 * actor.lsRamp);
++      var rampDmg = this.directDamage(target, Math.max(1, Math.floor(actor.maxHp * pct / 100)), 'percent');
++      this.push('星光·浪打千击：附加自身最大体力 ' + pct + '% 的百分比伤害（' + rampDmg + '）。');
++      actor.lsRamp = Math.min(3, actor.lsRamp + 1);
++    }
++  };
++
++  /** 3576 大轮明王：按技能 id 修正通用解析 */
++  Battle.prototype.dlFilterFx = function (actor, target, skill, fx) {
++    fx = fx.map(function (e) { return Object.assign({}, e); });
++    if (skill.id === 31838) {
++      fx.forEach(function (e) { if (e.kind === 'drainMax') e.lowDen = 3; });
++    } else if (skill.id === 31839) {
++      fx = fx.filter(function (e) { return e.kind !== 'stat'; });
++    } else if (skill.id === 26030) {
++      if (!hasStatUp(actor)) fx.forEach(function (e) { if (e.kind === 'stat') e.stages = 2; });
++    } else if (skill.id === 26029) {
++      fx = fx.filter(function (e) { return e.kind !== 'status'; });
++    } else if (skill.id === 31843) {
++      fx = fx.filter(function (e) { return e.kind !== 'clear' && e.kind !== 'drainMax'; });
++    }
++    return fx;
++  };
++
++  /** 3576 大轮明王：专用技能结算 */
++  Battle.prototype.afterSkill3576 = function (actor, target, skill, ctx) {
++    if (!actor || actor.pet.id !== 3576) return;
++    if (skill.id === 31839) {
++      if (this.rng() < 0.5 && target.hp > 0) {
++        SIX_STATS.forEach(function (k) { target.stages[k] = clampStage(target.stages[k] - 1); });
++        this.push('闪雷之暴：50% 触发，对手全属性 -1。');
++      }
++    } else if (skill.id === 26029) {
++      if (target.hp > 0) {
++        if (this.rng() * 100 < 80) {
++          this.applyStatus(target, 'paralyze', 1, '对手');
++        } else {
++          target.skillBlock = Math.max(target.skillBlock || 0, 1);
++          this.push('圣界煌雷未触发麻痹：对手下 1 次技能失效。');
++        }
++      }
++    } else if (skill.id === 31842) {
++      if (target.hp > 0) {
++        target.skills.forEach(function (sl) { sl.pp = 0; });
++        SIX_STATS.forEach(function (k) { target.stages[k] = clampStage(target.stages[k] - 1); });
++        this.push('圆寂归尘：对手全部技能 PP 归零，全属性 -1。');
++      }
++    } else if (skill.id === 31843) {
++      var had = false;
++      Object.keys(target.stages).forEach(function (k) {
++        if (target.stages[k] > 0) {
++          had = true;
++          actor.stages[k] = clampStage((actor.stages[k] || 0) + target.stages[k]);
++          target.stages[k] = -target.stages[k];
++        }
++      });
++      this.push(had ? '金轮耀世斩：反转对手能力提升，自身获得相同强化。' : '金轮耀世斩：对手无能力提升，未触发反转。');
++      if (target.hp > 0) {
++        if (actor.hp * 2 > actor.maxHp) {
++          var pctDmg = Math.max(1, Math.floor(actor.hp / 3));
++          pctDmg = this.directDamage(target, pctDmg, 'percent');
++          this.push('金轮耀世斩：体力高于 1/2，附加自身当前体力 1/3 百分比伤害（' + pctDmg + '）。');
++        } else {
++          var dMax = Math.max(1, Math.floor(target.maxHp / 3));
++          if (actor.healBlock <= 0) {
++            target.hp = Math.max(0, target.hp - dMax);
++            var dh = Math.min(dMax, actor.maxHp - actor.hp);
++            if (dh > 0) actor.hp += dh;
++            this.push('金轮耀世斩：体力低于 1/2，吸取对手最大体力 1/3（' + dMax + '）。');
++          } else {
++            this.push('金轮耀世斩：无法回复体力，吸取失败。');
++          }
++        }
++      }
++    }
++  };
++
++  /** 3056 圣甲·盖亚：按技能 id 修正通用解析 */
++  Battle.prototype.jaFilterFx = function (actor, target, skill, fx) {
++    fx = fx.map(function (e) { return Object.assign({}, e); });
++    if (skill.id === 23285) {
++      fx = fx.filter(function (e) { return e.kind !== 'status'; });
++    } else if (skill.id === 15967) {
++      fx = fx.filter(function (e) { return e.kind !== 'flat'; });
++    } else if (skill.id === 19368) {
++      fx = fx.filter(function (e) { return e.kind !== 'randomStatus'; });
++    }
++    return fx;
++  };
++
++  /** 3056 圣甲·盖亚：专用技能结算 */
++  Battle.prototype.afterSkill3056 = function (actor, target, skill, ctx) {
++    if (!actor || actor.pet.id !== 3056) return;
++    if (skill.id === 23285) {
++      if (actor.status && ['burn', 'frost', 'poison'].indexOf(actor.status.id) >= 0) {
++        this.push('逆转机甲：解除自身' + (STATUS_DEF[actor.status.id] || {}).name + '。');
++        actor.status = null;
++      }
++      actor.priorityBuff = { turns: 2, value: 2 };
++      this.push('逆转机甲：下 1 回合先制 +2。');
++    } else if (skill.id === 15967) {
++      if (ctx && !ctx.isFirst && target.hp > 0) {
++        var f = this.directDamage(target, 100, 'fixed');
++        this.push('圣战之拳：后出手，附加 ' + f + ' 点固定伤害。');
++      }
++    } else if (skill.id === 19366) {
++      var stole = false;
++      Object.keys(target.stages).forEach(function (k) {
++        if (target.stages[k] > 0) {
++          actor.stages[k] = clampStage((actor.stages[k] || 0) + target.stages[k]);
++          target.stages[k] = 0;
++          stole = true;
++        }
++      });
++      if (stole && target.hp > 0) {
++        var drainKj = this.directDamage(target, Math.max(1, Math.floor(target.maxHp / 3)), 'percent');
++        this.push('狂绝冲撞：吸收对手能力提升，减少其 1/3 最大体力（' + drainKj + '）。');
++      }
++    } else if (skill.id === 24780) {
++      actor.jaStatOnHit = { turns: 3, stages: 1 };
++      this.push('霸威冠宇：3 回合内对手使用攻击技能后，自身全属性 +1。');
++    } else if (skill.id === 19368) {
++      if (target.hp > 0 && target.hp < 300) {
++        target.hp = 0;
++        this.push('天威凛怒拳：对手体力不足 300，直接秒杀。');
++      }
++      if (target.hp <= 0) {
++        actor.jaNextStatus = true;
++        this.push('天威凛怒拳：击败对手，下回合开始随机附加 1 种异常状态。');
++      }
++    }
++  };
++
++  /** 3237 大威势明王：按技能 id 修正通用解析 */
++  Battle.prototype.mwFilterFx = function (actor, target, skill, fx) {
++    fx = fx.map(function (e) { return Object.assign({}, e); });
++    if (skill.id === 14486) {
++      fx = fx.filter(function (e) { return e.kind !== 'status'; });
++    } else if (skill.id === 16963) {
++      fx.forEach(function (e) { if (e.kind === 'status') e.chance = Math.min(100, 40 + 20 * (actor.streak || 0)); });
++    } else if (skill.id === 25172) {
++      if (actor.hp * 2 > actor.maxHp) fx.forEach(function (e) { if (e.kind === 'stat') e.stages = 2; });
++    } else if (skill.id === 30132) {
++      fx = fx.filter(function (e) { return e.kind !== 'flat'; });
++    } else if (skill.id === 14482) {
++      actor.mwHadUp = hasStatUp(target);
++      fx = fx.filter(function (e) { return e.kind !== 'stat'; });
++    }
++    return fx;
++  };
++
++  /** 3237 大威势明王：专用技能结算 */
++  Battle.prototype.afterSkill3237 = function (actor, target, skill, ctx) {
++    if (!actor || actor.pet.id !== 3237) return;
++    if (skill.id === 30132) {
++      actor.teFixedUse = { turns: 3, value: 150, dblIfHigher: true };
++      this.push('不破不立：3 回合内使用技能附加 150 固伤，自身体力高于对手时翻倍。');
++      if (this.rng() * 50 < 25 && target.hp > 0) {
++        SIX_STATS.forEach(function (k) { target.stages[k] = clampStage(target.stages[k] - 1); });
++        this.push('不破不立：50% 弱化翻倍，对手全属性再 -1。');
++      }
++    } else if (skill.id === 30133) {
++      if (target.hp > 0 && !(target.status && target.status.id === 'fear')) {
++        target.priorityDown = { turns: 2, value: 1 };
++        this.push('金刚华台意未令对手害怕：对手下 2 回合先制 -1。');
++      }
++    } else if (skill.id === 14482) {
++      if (actor.mwHadUp && target.hp > 0 && !hasStatUp(target)) {
++        actor.stages.atk = clampStage(actor.stages.atk + 1);
++        this.push('苍月之击：消除对手能力提升成功，自身攻击 +1。');
++      }
++    } else if (skill.id === 30134) {
++      if (ctx && ctx.clearSuccess) {
++        if (actor.healBlock <= 0) actor.hp = actor.maxHp;
++        this.push('大智善心明：消除对手能力提升成功，恢复全部体力。');
++      }
++    }
++  };
++
+   Battle.prototype.useSkill = function (side, index, turnCtx) {
+     var actor = this.activeOf(side);
+     // 861：对手使用属性技能 → 全技能 PP -N
+@@ -4609,6 +5223,12 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     if (!slot) { this.push(this.tag(side) + '没有可用的技能。'); return; }
+     var skill = slot.skill;
+ 
++    // 3576 大轮明王魂印：对手攻击技能命中前令其全属性 -1
++    if (target.soul3576AtkDown && skill.category && (skill.category.id === 1 || skill.category.id === 2) && target.hp > 0) {
++      SIX_STATS.forEach(function (k) { actor.stages[k] = clampStage(actor.stages[k] - 1); });
++      this.push(target.pet.name + ' 的魂印：' + actor.pet.name + ' 攻击技能命中前全属性 -1。');
++    }
++
+     // 魂·天忤太虚：仅处于星赐→物理、仅处于星哲→特殊；系别随自身，威力随天赋
+     if (skill.id === 28810 && ((actor.starGift > 0) !== (actor.starPhil > 0))) {
+       var starSkill = {};
+@@ -4797,10 +5417,29 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     if (actor.rampSkillId && actor.rampSkillId !== skill.id) { actor.rampUses = 0; actor.rampSkillId = 0; actor.rampActive = false; }
+ 
+     var fx = parseSkillEffects(skill);
++    if (actor.pet.id === 3788) fx = this.hyFilterFx(actor, target, skill, fx);
++    if (actor.pet.id === 3986) fx = this.qyFilterFx(actor, target, skill, fx);
++    if (actor.pet.id === 3237) fx = this.mwFilterFx(actor, target, skill, fx);
++    if (actor.pet.id === 3576) fx = this.dlFilterFx(actor, target, skill, fx);
++    if (actor.pet.id === 4648) fx = this.lsFilterFx(actor, target, skill, fx);
++    if (actor.pet.id === 3056) fx = this.jaFilterFx(actor, target, skill, fx);
+     this.preAttackStatusHooks(actor, target, skill);
+ 
+     this.push(this.tag(side) + actor.pet.name + ' 使出「' + skill.name + '」！');
+ 
++    // 3986 神之束缚：使用技能的当回合附加固定伤害；对手未受到固伤时改附加等量真实伤害
++    if (actor.teFixedUse && actor.teFixedUse.turns > 0 && target.hp > 0) {
++      var qTv = actor.teFixedUse.value;
++      if (actor.teFixedUse.dblIfHigher && actor.hp > target.hp) qTv *= 2;
++      var qFd = this.directDamage(target, qTv, 'fixed');
++      if (qFd <= 0) {
++        qFd = this.directDamage(target, qTv, 'true');
++        this.push('神之束缚：固定伤害未生效，改为附加 ' + qFd + ' 点真实伤害。');
++      } else {
++        this.push('神之束缚：附加 ' + qFd + ' 点固定伤害。');
++      }
++    }
++
+     // 技能效果原文（和魂印一样，让玩家看得到这句技能到底写了什么）
+     var effText = skill.info;
+     if (!effText) {
+@@ -4822,6 +5461,21 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       return;
+     }
+ 
++    if (actor.pet.id === 3788 && actor.xinDead && skill.id === 32907) {
++      actor.critTimed = { turns: 1, add: 25 };
++    }
++    if (target && target.vkDrain > 0 && target.hp > 0 &&
++      skill.category && (skill.category.id === 1 || skill.category.id === 2)) {
++      var vkDen = target.vkDrainDen || 3;
++      var vkLoss = this.directDamage(actor, Math.max(1, Math.floor(actor.maxHp / vkDen)), 'percent');
++      target.hp = Math.min(target.maxHp, target.hp + vkLoss);
++      var vkMsg = target.pet.name + ' 的虚空桎梏：对手使用攻击技能，命中前吸取其最大体力 1/' + vkDen + '（' + vkLoss + ' 点）';
++      if (target.vkGuard > 0) {
++        actor.skillBlock = Math.max(actor.skillBlock || 0, 2);
++        vkMsg += '，其 2 回合内属性技能失效';
++      }
++      this.push(vkMsg + '。');
++    }
+     if (!this.accuracyCheck(actor, target, skill)) {
+       this.push('但是没有命中…');
+       if (actor.selfKoOnMiss) {
+@@ -4873,6 +5527,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       // 统一走 clearRoundEffects，避免「断回合」漏掉某些回合类效果（护盾/回血/PP消耗/免致命…）
+       cleared = self.clearRoundEffects(target) > 0;
+       ctx.clearSuccess = cleared;
++      ctx.hyClearedRound = cleared;
+       self.push(cleared ? '对手的回合类效果被消除了！' : '对手没有回合类效果。');
+     });
+ 
+@@ -4913,6 +5568,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       }
+     });
+ 
++    self.lastHits = hits;
+     // 威力修正
+     var powerMul = 1;
+     var powerAdd = 0;
+@@ -5150,6 +5806,46 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       self.push('附加 ' + fv + ' 点固定伤害。');
+     });
+ 
++    // 真实伤害 / 低伤补偿 / 神印 PP / 放逐 PP
++    fx.forEach(function (e) {
++      if (['trueDamage', 'lowTrueDamage', 'ppZeroPerMark', 'exiledPpDrain'].indexOf(e.kind) < 0) return;
++      if (target.hp <= 0 && e.kind !== 'exiledPpDrain') return;
++      if (e.req && !checkCond(e.req, ctx)) return;
++      if (e.chance && self.rng() * 100 >= e.chance) return;
++      if (e.kind === 'trueDamage') {
++        var td = self.directDamage(target, e.value, 'true');
++        if (td > 0) self.push('附加 ' + td + ' 点真实伤害。');
++      } else if (e.kind === 'lowTrueDamage') {
++        if ((ctx.dealt || 0) < e.threshold) {
++          var lt = self.directDamage(target, e.value, 'true');
++          if (lt > 0) self.push('伤害低于 ' + e.threshold + '：附加 ' + lt + ' 点真实伤害。');
++        }
++      } else if (e.kind === 'ppZeroPerMark') {
++        var mk = Math.min(3, target.holyMarks || 0);
++        if (mk > 0) {
++          for (var mi = 0; mi < mk; mi++) {
++            var ppS = target.skills.filter(function (sl) { return sl.pp > 0; });
++            if (!ppS.length) break;
++            ppS[Math.floor(self.rng() * ppS.length)].pp = 0;
++          }
++          self.push('神印爆发：随机 ' + mk + ' 项技能 PP 归零。');
++        }
++      } else if (e.kind === 'exiledPpDrain') {
++        var exSide = target.side;
++        var exList = (self.exiled && self.exiled[exSide]) || [];
++        var teamO = exSide === 'me' ? self.me : self.foe;
++        var cand = exList.filter(function (i) { var m = teamO.team[i]; return m && m.hp > 0 && i !== teamO.active; });
++        if (cand.length) {
++          var pm = teamO.team[cand[Math.floor(self.rng() * cand.length)]];
++          pm.skills.forEach(function (sl) { sl.pp = Math.max(0, sl.pp - 1); });
++          self.push('放逐之力：' + pm.pet.name + ' 全部技能 PP -1。');
++        } else {
++          target.skills.forEach(function (sl) { sl.pp = Math.max(0, sl.pp - 1); });
++          self.push('无被放逐精灵：对手当前精灵全部技能 PP -1。');
++        }
++      }
++    });
++
+     // 追加固定伤害（按已造成伤害 / 对手已损失体力）
+     fx.forEach(function (e) {
+       if (target.hp <= 0) return;
+@@ -5342,6 +6038,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+         return;
+       }
+       var stGain = e.stages;
++      if (e.hyLowHalf && actor.hp * 2 < actor.maxHp) stGain = e.stages * 2;
+       if (e.fullHpDouble && who.hp >= who.maxHp) stGain = e.stages * 2;
+       if (e.lowHpDouble) {
+         var lowerCmp = (e.target === 'foe') ? (actor.hp < target.hp) : (who.hp < target.hp);
+@@ -5368,12 +6065,6 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+         chNow += e.chancePerUp * upN9;
+       }
+       if (self.rng() * 100 >= chNow) { ctx.statusApplied = false; return; }
+-      if (target.reflectStatus > 0) {
+-        self.applyStatus(actor, e.statusId, e.turns, self.tag(side));
+-        self.push('异常状态被反弹了！');
+-        ctx.statusApplied = false;
+-        return;
+-      }
+       self.applyStatus(target, e.statusId, e.turns, side === 'me' ? '对手' : '我方');
+       ctx.statusApplied = !!(target.status && target.status.id === e.statusId);
+     });
+@@ -5414,6 +6105,9 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       } else if (e.kind === 'immuneStatus') {
+         actor.immuneStatus = Math.max(actor.immuneStatus, e.turns);
+         self.push(self.tag(side) + e.turns + ' 回合内免疫异常状态。');
++      } else if (e.kind === 'statusGuardTimes') {
++        actor.statusGuard = Math.max(actor.statusGuard || 0, e.times || 1);
++        self.push(self.tag(side) + '免疫下 ' + actor.statusGuard + ' 次受到的异常状态（次数类效果不叠加，重复获得按较高次数刷新）。');
+       } else if (e.kind === 'immuneStat') {
+         actor.immuneStat = Math.max(actor.immuneStat, e.turns);
+         self.push(self.tag(side) + e.turns + ' 回合内免疫能力下降。');
+@@ -6357,10 +7051,16 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       } else if (e.kind === 'attackBlock') {
+         target.attackBlock = Math.max(target.attackBlock || 0, e.turns);
+         self.push('对手 ' + e.turns + ' 回合内无法使用攻击技能。');
++      } else if (e.kind === 'drainOnFoeAtk') {
++        actor.vkDrain = Math.max(actor.vkDrain || 0, e.turns || 3);
++        actor.vkDrainNum = e.num || 1;
++        actor.vkDrainDen = e.den || 3;
++        self.push(self.tag(side) + '获得「对手使用攻击技能则命中前吸取其最大体力 1/' + (e.den || 3) + '」的 ' + (e.turns || 3) + ' 回合窗口。');
+       } else if (e.kind === 'drainMax') {
+         if (e.req && !checkCond(e.req, ctx)) return;
+         if (actor.healBlock > 0) { self.push(self.tag(side) + '无法回复体力，吸取失败。'); return; }
+-        var dm = Math.max(1, Math.floor(target.maxHp * e.num / e.den));
++        var dDen = (e.lowDen && actor.hp < target.hp) ? e.lowDen : e.den;
++        var dm = Math.max(1, Math.floor(target.maxHp * e.num / dDen));
+         if (target.hp > 0) {
+           target.hp = Math.max(0, target.hp - dm);
+           var dheal = Math.min(dm, actor.maxHp - actor.hp);
+@@ -6783,6 +7483,14 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       } else if (e.kind === 'chanceImmune') {
+         actor.chanceImmune = { turns: e.turns, chance: e.chance };
+         self.push(self.tag(side) + e.turns + ' 回合内有 ' + e.chance + '% 概率免疫攻击伤害。');
++      } else if (e.kind === 'heal') {
++        if (e.req && !checkCond(e.req, ctx)) return;
++        if (actor.healBlock > 0) { self.push(self.tag(side) + '无法回复体力。'); }
++        else {
++          var hv = Math.min(Math.floor(actor.maxHp * e.num / (e.den || 1)), actor.maxHp - actor.hp);
++          if (actor.healDown && actor.healDown.turns > 0) hv = Math.floor(hv * (100 - actor.healDown.pct) / 100);
++          if (hv > 0) { actor.hp += hv; self.push(self.tag(side) + '回复了 ' + hv + ' 点体力。'); }
++        }
+       } else if (e.kind === 'useHeal') {
+         actor.teUseHeal = { turns: e.turns, num: e.num, den: e.den, last: -1, lowHalf: e.lowHalf || 0, percent: !!e.percent };
+         self.push(self.tag(side) + e.turns + ' 回合内每回合使用技能恢复自身最大体力的 ' + e.num + '/' + e.den + '。');
+@@ -6796,6 +7504,9 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+           if (target.stages[k7] > 0) { target.stages[k7] = -target.stages[k7]; invN++; }
+         });
+         self.push(invN ? '对手的能力提升被反转了！' : '对手没有能力提升。');
++      } else if (e.kind === 'teFixedUse') {
++        actor.teFixedUse = { turns: e.turns, value: e.value };
++        self.push(self.tag(side) + e.turns + ' 回合内使用技能附加 ' + e.value + ' 点固定伤害。');
+       } else if (e.kind === 'foeNoStatUp') {
+         target.noStatUp = Math.max(target.noStatUp || 0, e.turns);
+         self.push('对手 ' + e.turns + ' 回合内无法提升能力。');
+@@ -6960,6 +7671,19 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     this.afterSkill3291(actor, target, skill, ctx, selfDied);
+     this.afterSkill4676(actor, target, skill, ctx);
+     this.afterSkillGeneric(actor, target, skill, ctx);
++    this.afterSkill3788(actor, target, skill, ctx);
++    this.afterSkill3986(actor, target, skill, ctx);
++    this.afterSkill3237(actor, target, skill, ctx);
++    this.afterSkill3576(actor, target, skill, ctx);
++    this.afterSkill4648(actor, target, skill, ctx);
++    this.afterSkill3056(actor, target, skill, ctx);
++
++    // 3056 霸威冠宇：对手使用攻击技能后，自身全属性 +1
++    var jaAtk = skill.category && (skill.category.id === 1 || skill.category.id === 2);
++    if (jaAtk && target.jaStatOnHit && target.jaStatOnHit.turns > 0 && target.hp > 0) {
++      SIX_STATS.forEach(function (k) { target.stages[k] = clampStage(target.stages[k] + 1); });
++      this.push(target.pet.name + ' 的霸威冠宇：对手使用攻击技能，自身全属性 +1。');
++    }
+     this.afterSkillStatusHooks(actor, target, skill);
+ 
+     if (selfDied && actor.hp > 0) {
+@@ -7033,6 +7757,9 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       v = Math.max(1, Math.floor(v * target.fixedPctPersistMul));
+     }
+     if (v <= 0) { this.push(this.tag(target.side) + target.pet.name + ' 的抗性免疫了伤害。'); return 0; }
++    if (v > 0 && target.fixedPctReduce && target.fixedPctReduce.turns > 0 && (kind === 'fixed' || kind === 'percent')) {
++      v = Math.max(1, Math.floor(v * (1 - target.fixedPctReduce.pct / 100)));
++    }
+     if (target.ward > 0) {
+       var wa = Math.min(target.ward, v);
+       target.ward -= wa;
+@@ -7040,6 +7767,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       this.push(this.tag(target.side) + '的护罩吸收了 ' + wa + ' 点伤害。');
+       if (v <= 0) return 0;
+     }
++    if (target.hySoul && target.xinAlive) v = this.xinAbsorb(target, v);
+     target.hp = Math.max(0, target.hp - v);
+     return v;
+   };
+@@ -7072,6 +7800,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+   Battle.prototype.resistDamage = function (target, raw, kind) {
+     if (!target || raw <= 0) return 0;
+     if (target.immuneFixedPct || hasStack(target, 4)) return 0;
++    if (target.xinMarkActive || target.xinImmuneFixedPct) return 0;
+     var r = kind === 'fixed' ? (target.fixedResist || 0) : (kind === 'percent' ? (target.percentResist || 0) : 0);
+     r = Math.max(0, Math.min(100, r));
+     if (r >= 100) return 0;
+@@ -7083,6 +7812,10 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     var c = this.activeOf(side);
+     if (!c || raw <= 0 || c.hp <= 0) return 0;
+     opts = opts || {};
++    var atkCapC = this.activeOf(side === 'me' ? 'foe' : 'me');
++    if (opts.attack && atkCapC && atkCapC.dealtCap && atkCapC.dealtCap.turns > 0) {
++      raw = Math.min(raw, atkCapC.dealtCap.value);
++    }
+ 
+     if (c.starAttackImmune && opts.attack) {
+       this.push(this.tag(side) + c.pet.name + ' 处于星盘回返，免疫了这次攻击。');
+@@ -7133,6 +7866,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     }
+ 
+     var mul = 1;
++    if (opts.attack && c.mwGuard && c.mwReduceTurn === this.turn) mul *= (1 - c.mwGuard.pct / 100);
+     if (!opts.ignoreGuards) {
+       for (var i = 0; i < c.guards.length; i++) {
+         var g = c.guards[i];
+@@ -7208,6 +7942,11 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       c.nextGuard.times--;
+       this.push('伤害被额外减免了 ' + c.nextGuard.pct + '%。');
+     }
++    if (opts.attack && c.nextFlatReduce > 0) {
++      dmg = Math.max(1, dmg - c.nextFlatReduce);
++      this.push(c.pet.name + ' 的「星光·克制」减免了 ' + c.nextFlatReduce + ' 点攻击伤害。');
++      c.nextFlatReduce = 0;
++    }
+ 
+     if (c.damageFlat && c.damageFlat.turns > 0) {
+       dmg = Math.max(1, dmg - c.damageFlat.value);
+@@ -7218,6 +7957,7 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       this.push('伤害被限制在 ' + dmg + ' 点。');
+     }
+ 
++      if (c.hySoul && c.xinAlive) dmg = this.xinAbsorb(c, dmg);
+       if (dmg >= c.hp && c.reflectLethal > 0) {
+         var rl = dmg;
+         var foeOf = this.activeOf(c.side === 'me' ? 'foe' : 'me');
+@@ -7262,6 +8002,10 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       }
+     }
+     if (opts.attack) c.tookAtkDmgTurn = true;
++    if (opts.attack && c.mwGuard && dmg > c.mwGuard.threshold && c.hp > 0) {
++      c.mwReduceTurn = this.turn + 1;
++      this.push(this.tag(side) + '大威势：本回合受攻击伤害超过 ' + c.mwGuard.threshold + '，下回合受到的攻击伤害 -' + c.mwGuard.pct + '%。');
++    }
+     var atk0 = this.activeOf(side === 'me' ? 'foe' : 'me');
+     if (atk0) atk0.lastDealt = dmg;
+ 
+@@ -7432,11 +8176,25 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       c.reflectNext = 0;
+     }
+ 
++    if (dmg > 0 && opts.attack) {
++      if (!c.dmgTakenTurn || c.dmgTakenTurn.turn !== this.turn) c.dmgTakenTurn = { turn: this.turn, amount: 0 };
++      c.dmgTakenTurn.amount += dmg;
++    }
++
+     return dmg;
+   };
+ 
+   /** 施加异常状态 */
+-  Battle.prototype.applyStatus = function (target, id, turns, label) {
++  Battle.prototype.applyStatus = function (target, id, turns, label, noReflect) {
++    // 免疫并反弹异常：把异常原样反弹给对面（不再落到自身），反弹来源不再二次反弹
++    if (target && target.reflectStatus > 0 && !noReflect) {
++      var reflSrc = this.activeOf(target.side === 'me' ? 'foe' : 'me');
++      if (reflSrc && reflSrc.hp > 0 && reflSrc !== target) {
++        this.push(target.pet.name + ' 的「免疫并反弹异常」将异常状态反弹给了 ' + reflSrc.pet.name + '！');
++        this.applyStatus(reflSrc, id, turns, label, true);
++        return;
++      }
++    }
+     if (target && target.starGuard > 0) {
+       this.push(target.pet.name + ' 的星皇之佑免疫了异常状态！');
+       return;
+@@ -7536,11 +8294,58 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+   };
+ 
+   /** 回合结束：状态伤害、持续伤害结算 */
++  /** 3576 大轮明王魂印：战斗阶段结束转移自身异常/能力下降（阵亡亦可） */
++  Battle.prototype.soul3576PhaseEnd = function () {
++    var self = this;
++    ['me', 'foe'].forEach(function (side) {
++      var c = self.activeOf(side);
++      var info = null;
++      if (c && c.pet.id === 3576 && c.soul3576Phase) {
++        var anyDown = SIX_STATS.some(function (k) { return c.stages[k] < 0; });
++        if (c.status || anyDown) {
++          info = { statusId: c.status && c.status.id, stat: {} };
++          SIX_STATS.forEach(function (k) { if (c.stages[k] < 0) info.stat[k] = c.stages[k]; });
++        }
++      } else if (self.mw3576Copy && self.mw3576Copy[side]) {
++        info = self.mw3576Copy[side];
++        self.mw3576Copy[side] = null;
++      }
++      if (!info) return;
++      var foe = self.activeOf(side === 'me' ? 'foe' : 'me');
++      if (!foe || foe.hp <= 0) return;
++      self.clearRoundEffects(foe);
++      if (info.statusId) self.applyStatus(foe, info.statusId, 1, '对手');
++      Object.keys(info.stat || {}).forEach(function (k) {
++        foe.stages[k] = clampStage(foe.stages[k] + info.stat[k]);
++      });
++      self.push(self.tag(side) + '大轮明王魂印：战斗阶段结束，清除对手回合类效果并附加自身异常 / 能力下降。');
++    });
++  };
++
+   Battle.prototype.endOfTurn = function () {
+     var self = this;
++    this.soul3576PhaseEnd();
+     ['me', 'foe'].forEach(function (side) {
+       var c0 = self.activeOf(side);
+       if (c0 && c0.skillBlock > 0) c0.skillBlock--;
++      if (c0 && c0.attrPunishPP && c0.attrPunishPP.turns > 0) {
++        c0.attrPunishPP.turns--;
++        if (c0.attrPunishPP.turns <= 0) c0.attrPunishPP = null;
++      }
++      if (c0 && c0.hySoul && c0.xinEndPct) {
++        var xpFoe = self.activeOf(side === 'me' ? 'foe' : 'me');
++        if (xpFoe && xpFoe.hp > 0 && c0.hp > 0) {
++          var xpDmg = self.directDamage(xpFoe, Math.max(1, Math.floor(xpFoe.maxHp / 4)), 'percent');
++          self.push(self.tag(side) + '辛之怒：自身处于能力下降，附加 ' + xpDmg + ' 点百分比伤害。');
++        }
++        c0.xinEndPct = false;
++      }
++      if (c0 && c0.vulnTaken && c0.vulnTaken.turns > 0 && c0.vulnTaken.from !== self.turn) {
++        c0.vulnTaken.turns--;
++        if (c0.vulnTaken.turns <= 0) c0.vulnTaken = null;
++      }
++      if (c0 && c0.vkDrain > 0) c0.vkDrain--;
++      if (c0 && c0.vkGuard > 0) c0.vkGuard--;
+       if (c0 && c0.attackBlock > 0) c0.attackBlock--;
+       if (c0 && c0.healBlock > 0) c0.healBlock--;
+       if (c0 && c0.mustHitTurns > 0) c0.mustHitTurns--;
+@@ -7672,6 +8477,9 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       if (c0 && c0.convertTaken > 0) c0.convertTaken--;
+       if (c0 && c0.wukongFormTurns > 0) c0.wukongFormTurns--;
+       if (c0 && c0.guardFlat && c0.guardFlat.turns > 0) c0.guardFlat.turns--;
++      if (c0 && c0.dealtCap && c0.dealtCap.turns > 0) c0.dealtCap.turns--;
++      if (c0 && c0.jaStatOnHit && c0.jaStatOnHit.turns > 0) c0.jaStatOnHit.turns--;
++      if (c0 && c0.healDown && c0.healDown.turns > 0) c0.healDown.turns--;
+       if (c0 && c0.typePower && c0.typePower.turns > 0) c0.typePower.turns--;
+       if (c0 && c0.perTurnPpZero && c0.perTurnPpZero.turns > 0) {
+         var foePZ = self.activeOf(side === 'me' ? 'foe' : 'me');
+@@ -7902,6 +8710,20 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+         c.teStatDown.turns--;
+         if (c.teStatDown.turns <= 0) c.teStatDown = null;
+       }
++      if (c.qyBless && c.qyBless.turns > 0) {
++        var qbFoe = self.activeOf(side === 'me' ? 'foe' : 'me');
++        if (self.rng() * 100 < c.qyBless.chance) {
++          ALL_STATS.forEach(function (kq) { c.stages[kq] = clampStage(c.stages[kq] + 1); });
++          self.push(self.tag(side) + '神之佑：自身全属性 +1。');
++        } else if (qbFoe && qbFoe.hp > 0) {
++          ALL_STATS.forEach(function (kq) { qbFoe.stages[kq] = clampStage(qbFoe.stages[kq] - 1); });
++          self.push(self.tag(side) + '神之佑未触发：对手全属性 -1。');
++        }
++        c.qyBless.turns--;
++        if (c.qyBless.turns <= 0) c.qyBless = null;
++      }
++      if (c.teFixedUse && c.teFixedUse.turns > 0) { c.teFixedUse.turns--; if (c.teFixedUse.turns <= 0) c.teFixedUse = null; }
++      if (c.fixedPctReduce && c.fixedPctReduce.turns > 0) { c.fixedPctReduce.turns--; if (c.fixedPctReduce.turns <= 0) c.fixedPctReduce = null; }
+       if (c.teDrain && c.teDrain.turns > 0) {
+         var tdFoe = self.activeOf(side === 'me' ? 'foe' : 'me');
+         if (tdFoe && tdFoe.hp > 0 && c.hp > 0) {
+@@ -8358,6 +9180,18 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     });
+ 
+     // 场地持续回合递减
++    ['me', 'foe'].forEach(function (sdM) {
++      var mk = self.xinMark[sdM];
++      if (!mk || mk.turns <= 0) return;
++      if (mk.from === self.turn) return;
++      mk.turns--;
++      if (mk.turns <= 0) {
++        self.xinMark[sdM] = null;
++        var actM = self.activeOf(sdM);
++        if (actM) actM.xinMarkActive = false;
++        self.push(self.tag(sdM) + '辛之印记消散。');
++      }
++    });
+     if (this.field && this.field.turns > 0) {
+       this.field.turns--;
+       if (this.field.turns <= 0) this.clearField();
+@@ -8688,6 +9522,39 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+           self.push(self.tag(side) + c.pet.name + ' 的复活效果未触发。');
+         }
+       }
++      if (c.hySoul) {
++        c.xinAlive = false;
++        c.xinHp = 0;
++        self.xinMark[c.side] = { turns: 3, from: self.turn };
++        self.push(self.tag(side) + '辛之印记：己方下 3 回合免疫异常/能力下降/固定伤害/百分比伤害，暴击率 +100%。');
++      }
++      // 3056 圣甲·盖亚魂印：满级阵亡时按本回合所受技能伤害追加真实伤害，若对手因此死亡则自身恢复 1 点体力
++      if (c.pet.id === 3056 && self.level >= 100 && !c.jaSoulUsed && c.dmgTakenTurn && c.dmgTakenTurn.turn === self.turn && c.dmgTakenTurn.amount > 0) {
++        var killerJa = self.activeOf(side === 'me' ? 'foe' : 'me');
++        if (killerJa && killerJa.hp > 0) {
++          c.jaSoulUsed = true;
++          var tja = self.directDamage(killerJa, c.dmgTakenTurn.amount, 'true');
++          self.push(c.pet.name + ' 的魂印：附加本回合所受技能伤害的真实伤害（' + tja + '）。');
++          if (killerJa.hp <= 0) {
++            c.hp = 1;
++            self.push(c.pet.name + ' 的魂印：对手体力归零，自身恢复 1 点体力。');
++            return;
++          }
++        }
++      }
++      // 3576 大轮明王：阵亡时留存异常/能力下降供战斗阶段结束转移，并给己方下只精灵祝福
++      if (c.pet.id === 3576) {
++        var anyDownD = SIX_STATS.some(function (k) { return c.stages[k] < 0; });
++        if (c.soul3576Phase && (c.status || anyDownD)) {
++          self.mw3576Copy = self.mw3576Copy || {};
++          self.mw3576Copy[side] = { statusId: c.status && c.status.id, stat: {} };
++          SIX_STATS.forEach(function (k) { if (c.stages[k] < 0) self.mw3576Copy[side].stat[k] = c.stages[k]; });
++        }
++        if (c.soul3576DeathBless) {
++          self.mw3576Bless = self.mw3576Bless || {};
++          self.mw3576Bless[side] = true;
++        }
++      }
+       self.push(self.tag(side) + c.pet.name + ' 倒下了！');
+       // 天启帝君「帝君之殒」：被击败后 30% 令对手 1 只在场下精灵死亡
+       if (c.junYun) {
+@@ -8715,6 +9582,18 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+         }
+         c.deathCurse = null;
+       }
++      // 3237 大威势明王：被击败后对手体力降为 1，清对手回合类效果并反转其能力提升
++      if (c.pet.id === 3237 && c.mwDeath) {
++        var killerDw = self.activeOf(side === 'me' ? 'foe' : 'me');
++        if (killerDw && killerDw.hp > 0) {
++          killerDw.hp = 1;
++          self.clearRoundEffects(killerDw);
++          Object.keys(killerDw.stages).forEach(function (kDw) {
++            if (killerDw.stages[kDw] > 0) killerDw.stages[kDw] = -killerDw.stages[kDw];
++          });
++          self.push(c.pet.name + ' 的魂印：被击败后 ' + killerDw.pet.name + ' 体力降为 1，回合类效果被清除、能力提升被反转。');
++        }
++      }
+       // 被击败时清除对手强化
+       if (c.onDeathClearFoe) {
+         var killer2 = self.activeOf(side === 'me' ? 'foe' : 'me');
+@@ -8794,8 +9673,21 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       if (srSlot && srSlot.skill.category && srSlot.skill.category.id !== 4) bonus += 2;
+     }
+     if (hasStack(actor, 5)) bonus += 1;
++    if (actor && actor.hySoul && actor.xinDead && action.type === 'skill') {
++      var hySlot = actor.skills[action.index];
++      if (hySlot && hySlot.skill.id === 32907) bonus += 1;
++    }
+     if (actor && actor.morphMode === 'speed' && actor.morphSpeed) bonus += actor.morphSpeed.priority || 1;
+     if (actor && actor.priorityIfLow && actor.hp / actor.maxHp < actor.priorityIfLow.threshold) bonus += actor.priorityIfLow.value;
++    if (actor && action.type === 'skill' && action.index != null) {
++      var qSlot = actor.skills[action.index];
++      var qFoe = this.activeOf(actor.side === 'me' ? 'foe' : 'me');
++      if (qSlot && qSlot.skill && qFoe) {
++        if (qSlot.skill.id === 16961 && hasStatUp(qFoe)) bonus += 3;
++        else if (qSlot.skill.id === 30134 && hasStatUp(qFoe)) bonus += 2;
++        else if (qSlot.skill.id === 23836 && actor.hp * 3 < actor.maxHp) bonus += 2;
++      }
++    }
+     if (actor && actor.priorityIfHpBelow && actor.hp < actor.priorityIfHpBelow) bonus += 10;
+     // 魂印：体力高于对手时必定先手
+     if (actor && actor.priorityIfHigher && actor.side) {
+@@ -8984,6 +9876,8 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+ 
+   /** 精灵登场时的各类魂印效果 */
+   Battle.prototype.onEnter = function (c) {
++    if (c && c.hySoul) this.hunyuanEnter(c);
++    if (c && this.xinMark && this.xinMark[c.side] && this.xinMark[c.side].turns > 0) this.applyXinMark(c, c.side);
+     // 天启帝君「帝君之援」：满体力登场 → 当回合所有技能先制 +1
+     if (c && (this[c.side].team || []).some(function (x) { return x && x.junYuan && x.hp > 0; }) && c.hp >= c.maxHp) {
+       c.priorityBuff = { turns: 1, value: 1 };
+@@ -9098,6 +9992,12 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       c.ward += nas;
+       this.push(this.tag(c.side) + c.pet.name + ' 获得了 ' + nas + ' 点护盾与护罩。');
+     }
++    if (this.mw3576Bless && this.mw3576Bless[c.side]) {
++      delete this.mw3576Bless[c.side];
++      SIX_STATS.forEach(function (k) { c.stages[k] = clampStage((c.stages[k] || 0) + 1); });
++      c.immuneStatus = Math.max(c.immuneStatus || 0, 1);
++      this.push(this.tag(c.side) + c.pet.name + ' 继承大轮明王遗愿：全属性 +1，免疫下 1 次受到的异常状态。');
++    }
+     if (this.dtzfCarry && this.dtzfCarry[c.side]) {
+       var cg = this.dtzfCarry[c.side];
+       delete this.dtzfCarry[c.side];
+@@ -9536,6 +10436,15 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+       if (!cS || cS.hp <= 0) return;
+       var foeS = selfMul.activeOf(sideS === 'me' ? 'foe' : 'me');
+       if (!foeS || foeS.hp <= 0) return;
++      selfMul.applyXinMark(cS, sideS);
++      if (cS.jaNextStatus && foeS && foeS.hp > 0) {
++        cS.jaNextStatus = false;
++        var jaPool = ['paralyze', 'burn', 'frost', 'poison', 'sleep', 'fear', 'tired', 'confuse', 'petrify', 'blind'];
++        var jaPick = jaPool[Math.floor(selfMul.rng() * jaPool.length)];
++        selfMul.applyStatus(foeS, jaPick, 1, sideS === 'me' ? '对手' : '我方');
++        selfMul.push(selfMul.tag(sideS) + '天威凛怒拳：下回合开始随机附加异常状态。');
++      }
++      if (cS.hySoul) selfMul.hunyuanTurnStart(sideS, cS, foeS);
+       // 「能力提升状态消失则对手属性技能失效」：回合开始判定（此时上回合增益已结算）
+       if (cS.buffGoneAttr) {
+         if (hasStatUp(cS)) cS.buffGoneAttr.seen = true;
+@@ -9962,12 +10871,78 @@ var SIX_STATS = ['atk', 'def', 'spAtk', 'spDef', 'spd', 'acc'];
+     25295: ['全属性 +1（当前体力低于 1/2 时翻倍）', '4 回合内每回合使用技能吸对手最大体力 1/3（低于 1/2 翻倍）', '下 2 次星皇之怒概率翻倍', '星怒：下 2 回合攻击伤害翻倍、受到攻击伤害额外 -50%'],
+     30380: ['攻击伤害低于 280 → 令对手疲惫', '未击败对手 → 对手下 1 回合攻击技能无效', '星怒：50% 令对手失明，未触发则 2 回合内对手属性技能无效'],
+     30381: ['暴击率提升 20%，每次使用再 +20%（上限 100%）', '打出暴击后下 2 次星皇之怒威力不再减少', '星怒：下 2 次攻击技能先制 +2'],
+-    37509: ['消除对手强化，成功则令对手疲惫；未触发则回复自身最大体力 1/3', '下 2 回合自身造成的攻击伤害翻倍'],
++    37509: ['消除对手能力提升，成功则令对手疲惫；未触发则回复自身最大体力 1/3', '3 回合内对手使用威力 ≤150 的攻击技能 → 令其疲惫，未触发则抵挡当次攻击', '下 2 回合自身造成的攻击伤害翻倍'],
+     37510: ['断回合成功 → 令对手疲惫', '消耗自身全部体力，己方下只精灵获得消耗值 50% 的护盾与护罩', '为对手附加 3 层蚩庸之锁（超上限则对手下 2 回合先制 -1）', '己方免疫下 1 次受到的异常状态'],
+-    37511: ['每层蚩庸之锁令对手随机 1 个攻击技能 PP 归零', '对手有 PP 的攻击技能数不足锁层时，本次伤害 +100%', '击败对手 → 对手下 1 次属性技能无效'],
+-    28808: ['对手处于能力下降时先制 +2', '4 回合内对手能力下降不可被解除/反转'],
+-    28809: ['4 回合内使用技能吸对手 1/3 最大体力（低于 1/2 翻倍）', '为对手附加 1 层蚩庸之锁（超上限则对手下 2 回合先制 -1）', '下 2 回合自身所有技能先制 +2'],
++    37511: ['攻击伤害不会出现微弱', '消除对手回合类效果，成功则随机 2 个技能 PP 归零', '反转自身能力下降，成功则随机 2 个技能 PP 归零', '每层蚩庸之锁令对手随机 1 个攻击技能 PP 归零', '对手有 PP 的攻击技能数不足锁层时，本次伤害 +100%', '击败对手 → 对手下 1 次属性技能无效'],
++    28808: ['对手处于能力下降时先制 +2', '4 回合内免疫并反弹所有异常状态', '4 回合内免疫能力下降', '对手处于能力下降时 100% 令其疲惫', '4 回合内对手能力下降不可被解除/反转', '100% 令对手全属性 -1', '3 回合内每回合对手攻击/特攻/速度 -1'],
++    28809: ['全属性 +1（对手处于能力下降时翻倍）', '4 回合内使用技能吸对手 1/3 最大体力（低于 1/2 翻倍），吸取后对手体力未减少则为己方场下各回 200', '为对手附加 1 层蚩庸之锁（超上限则对手下 2 回合先制 -1）', '下 2 回合自身所有技能先制 +2'],
+     24833: ['降低对手所有 PP 1 点，并恢复自身所有 PP 1 点', '3 回合内对手使用技能消耗的 PP 变为 2 倍'],
++    32907: ['断回合成功 → 对手下 2 回合受伤翻倍', '消除能力提升成功 → 令对手疲惫', '辛消散后本技能先制 +1、暴击率 +25%'],
++    32910: ['5% 秒杀，未触发则对手全属性 -1'],
++    32911: ['造成攻击伤害 >300 → 吸取对手最大体力 1/3（对手失去等量体力、自身回复）；<300 → 令对手疲惫，未触发则自身下 1 次攻击 +100%（=300 不触发）', '辛存活时反转自身能力下降，成功则对手 2 回合属性技能失效'],
++    32912: ['击败对手 → 50% 回满体力，未触发则全属性 +1', '未击败 → 下 2 回合先制 +2', '辛存活时攻击伤害 50% 吸血；辛消散后攻击伤害 +50%'],
++    26542: ['免疫下 2 次异常（次数类不叠加，重复获得刷新）', '3 回合内对手使用攻击技能时，命中前吸取其最大体力 1/3，并令其下 2 回合属性技能失效', '3 回合内对手用属性技 → 其所有技能 PP -2', '辛存活时 50%（消散后 100%）令自身 2 回合回合类效果不可消除'],
++    26543: ['全属性 +1（自身体力低于 1/2 时翻倍）', '4 回合内每回合战斗阶段结束时吸取对手最大体力 1/3（吸取时自身体力低于 1/2 则翻倍）', '下 2 回合先制 +2、造成的攻击伤害 +50%', '辛消散后下 1 次受到的攻击伤害 -50%'],
++    26541: ['令对手全属性 -1', '消除对手全部护盾，成功则再令对手全属性 -1（自身体力低于对手时该次弱化翻倍）'],
++    23462: ['攻击 +2、速度 +1、命中 +2', '5 回合内自身攻击技能造成伤害的 20% 回复体力'],
++    33888: ['附加 50 点真实伤害（无视抗性/减伤，仍受护盾护罩吸收）'],
++    33889: ['1 回合做 3-5 次攻击，自身有护盾时连击上限 8', '消除对手回合类效果，成功则随机 2 项技能 PP 归零', '消除对手能力提升，成功则附加 200 点真实伤害'],
++    14623: ['自身处于烧伤/冻伤/中毒状态时，本技能造成的伤害翻倍'],
++    33890: ['遇到天敌（被对方属性克制）时附加 200 点真实伤害'],
++    27019: ['为自身附加 300 点护盾', '3 回合内每回合 50% 自身全属性 +1，未触发则对手全属性 -1'],
++    27020: ['免疫下 2 次受到的异常状态（次数类不叠加）', '100% 令对手疲惫，未触发则对手 2 回合内属性技能无效', '3 回合内每回合使用技能附加 300 点固定伤害，若固伤未生效则改附加 300 点真实伤害', '下 2 回合自身所有技能先制 +2'],
++    27021: ['全属性 +1，对手存在神印时强化翻倍', '4 回合内每回合吸取对手最大体力 1/3（低于 1/2 时翻倍）', '3 回合内自身受到的固定/百分比伤害 -30%', '2 回合内回合类效果不可被消除，后出手时回合数 +1'],
++    33891: ['统一按非雄性处理：50% 令对手疲惫', '对手是雄性时伤害 +100% 的效果暂不生效（按需求关闭）'],
++    33892: ['25% 概率伤害 2 倍，自身处于能力提升状态时概率翻倍'],
++    33893: ['对手无神印：本技能必定致命一击', '对手每 1 层神印：随机 1 项技能 PP 归零', '未击败对手则下回合自身先制 +2'],
++    33894: ['反转自身能力下降，成功则对手下 1 次攻击技能无效', '造成的攻击伤害低于 350 时附加 350 点真实伤害', '随机 1 个被放逐的精灵全部技能 PP -1；无被放逐精灵则当前精灵全部技能 PP -1'],
++    22193: ['将受到的伤害以 200% 反馈给对手（下次受击时结算）'],
++    22194: ['3 回合内自身使用攻击技能造成的伤害会恢复自身体力'],
++    16959: ['消除对手回合类效果；下 2 回合对手所有技能先制 -1'],
++    14109: ['降低对手全部技能 1 点 PP；若对手所选技能 PP 为 0 则其本回合无法行动'],
++    22410: ['技能未命中则恢复自身最大体力 1/4', '命中后 100% 令对手害怕'],
++    14486: ['对手处于害怕状态时，本技能造成的伤害翻倍'],
++    22411: ['令对手攻击、防御、特攻、特防 -1'],
++    14482: ['消除对手能力提升，消除成功则自身攻击 +1'],
++    22412: ['恢复自身全部体力', '5 回合内免疫能力下降', '5 回合内免疫异常状态'],
++    23836: ['与对手互换当前体力', '自身体力低于 1/3 时本技能先制 +2（本回合即生效）'],
++    16960: ['令对手全属性 -1', '3 回合内每回合附加 100 点固定伤害'],
++    16961: ['命中后 80% 令对手害怕', '对手处于能力提升状态时先制 +3，并消除其能力提升'],
++    23837: ['5 回合内免疫异常状态', '将自身能力下降状态以 2 倍返还给对手', '4 回合内每回合使用技能恢复最大体力 1/3，体力低于 1/3 时翻倍'],
++    23838: ['攻击、防御、特防、速度 +1', '3 回合内每回合受到的伤害减少 200'],
++    16963: ['40% 令对手烧伤，连续使用每次 +20%，最高 100%'],
++    30131: ['消除对手回合类效果，成功则 2 回合内对手无法回血', '将自身能力下降双倍反馈给对手'],
++    25171: ['4 回合内免疫并反弹异常状态', '4 回合内每回合恢复最大体力 1/3 并造成等量百分比伤害，自身体力低于 1/2 时翻倍', '3 回合内对手使用属性技能后，其 2 回合内攻击技能无伤害且命中效果失效'],
++    30132: ['令对手全属性 -1，50% 概率弱化翻倍', '3 回合内使用技能附加 150 点固定伤害，自身体力高于对手时翻倍'],
++    25172: ['全属性 +1，自身体力高于 1/2 时翻倍', '3 回合内每回合受到的伤害减少 250', '下 2 回合自身所有技能先制 +2'],
++    30133: ['先出手时本技能伤害 +50%', '命中后 80% 令对手害怕，未触发则令对手下 2 回合先制 -1'],
++    30134: ['对手处于能力提升状态时先制 +2', '消除对手能力提升，成功则恢复自身全部体力', '造成伤害低于 300 时附加 300 点固定伤害，先出手则再 +150'],
++    31838: ['先制 +3', '消除对手回合类效果，成功则随机附加 2 种异常状态', '吸取对手最大体力 1/4，自身体力低于对手时变为 1/3'],
++    31839: ['50% 令对手全属性 -1（单次判定）'],
++    31840: ['自身处于能力提升状态时，本技能造成的伤害翻倍'],
++    26029: ['4 回合内免疫并反弹异常状态', '4 回合内免疫能力下降', '命中后 80% 令对手麻痹，未触发则对手下 1 次技能失效'],
++    26030: ['全属性 +1，自身不处于能力提升状态时翻倍', '4 回合内每回合使用技能恢复最大体力 1/3 并造成等量百分比伤害，体力低于 1/2 时翻倍', '下 2 回合自身所有技能先制 +2'],
++    31842: ['消耗自身全部体力', '对手全部技能 PP 归零', '令对手全属性 -1'],
++    31843: ['反转对手能力提升，成功则自身获得相同强化，失败则消除对手能力提升', '自身体力高于 1/2 时附加自身当前体力 1/3 的百分比伤害', '自身体力低于 1/2 时吸取对手最大体力 1/3'],
++    37383: ['先制 +3', '消除对手能力提升，成功则对手 2 回合内造成的攻击伤害不超过 200', '对手不处于能力提升时，其 2 回合内体力恢复效果 -50%', '2 回合内免疫异常状态与能力下降'],
++    10020: ['将本回合已受到的攻击伤害以 200% 反弹给对手（按攻击伤害结算，不经固伤/百分比抗性与护罩）', '使用前本回合未受到攻击伤害则不反弹'],
++    37385: ['将本回合已受到的攻击伤害以 200% 反弹给对手（按攻击伤害结算），并恢复等量体力', '使用前本回合未受到攻击伤害则不反弹', '造成的伤害低于 200 时，自身下 1 次受到的攻击伤害 -300'],
++    28737: ['4 回合内免疫并反弹异常状态', '解除自身能力下降，成功则下 2 回合先制 +2', '恢复全部体力；体力低于 1/2 时造成等量百分比伤害', '3 回合内受到攻击则对手下回合受到的伤害翻倍'],
++    37386: ['解除自身异常状态，解除成功则令对手冰封'],
++    28738: ['全属性 +1，自身体力高于 1/2 时翻倍', '下 2 回合自身造成的攻击伤害 ×2', '下 2 回合攻击忽略对手 25% 双防', '下 2 回合无视对手能力提升状态'],
++    37387: ['无视攻击免疫与护盾', '命中后 50% 令对手冰封，未触发则对手下 2 回合先制 -2', '造成伤害的 50% 恢复自身体力'],
++    37381: ['1 回合 5~10 段攻击，每段 20% 令自身攻击/速度/命中 +1', '消除对手回合类效果，成功则对手 2 回合内攻击技能 MISS', '对手处于星火之灼时伤害 +75%，自身体力低于对手时翻倍', '附加自身最大体力 20% 百分比伤害，每次使用 +10%，最高 40%'],
++    23285: ['解除自身烧伤/冻伤/中毒', '解除自身能力下降状态', '恢复自身全部体力', '下 2 回合自身攻击技能必定致命一击', '下 1 回合自身攻击先制 +2'],
++    15967: ['后出手时额外附加 100 点固定伤害'],
++    19366: ['吸收对手能力提升并转移到自身；吸收成功则减少对手 1/3 最大体力', '下 2 回合自身造成的攻击伤害翻倍'],
++    24779: ['4 回合内每回合附加 150 点固定伤害', '2 回合内对手属性技能无效', '吸取对手 200 点体力，自身体力低于对手时翻倍'],
++    24780: ['全属性 +1', '3 回合内对手使用攻击技能后，自身全属性 +1', '5 回合内免疫并反弹异常状态'],
++    19368: ['击败对手则下回合开始随机附加 1 种异常状态', '对手体力不足 300 时直接秒杀'],
++    19369: ['消除对手回合类效果，成功则自身攻击 +2、速度 +2', '附加所造成伤害 40% 的固定伤害'],
++    15969: ['附加对手防御值 40% 的百分比伤害'],
++    15966: ['1 回合做 3~5 次攻击'],
++    19367: ['反转自身能力下降状态'],
++    23287: ['3 回合内每回合受到的伤害减少 120', '5 回合内免疫异常状态'],
+   };
+   function skillImplNotes(skill) {
+     if (!skill || skill.id == null) return [];

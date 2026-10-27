@@ -1,0 +1,28 @@
+{
+  "name": "seer-fan-app",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node config/build.mjs",
+    "preview": "vite preview",
+    "assets": "node config/prepare.mjs",
+    "test:regression": "node test/regression.mjs",
+    "test:smoke": "node test/smoke.mjs",
+    "test": "node test/check.mjs"
+  },
+  "dependencies": {
+    "phaser": "^4.2.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.2"
+  }
+}

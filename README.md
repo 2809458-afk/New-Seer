@@ -29,5 +29,5 @@ Chrome可用时，启动预览服务后运行 `npm run test:smoke -- --pets --so
 
 - 53套回归、1664断言；15组app检查；27354技能完整效果数组与11894组固定队伍战斗对拍。
 - `web/js/battle.js`为冻结参照；app构建时严格应用 `app/src/core/expansions/pets-20261027.patch`，保留既有规则修正。
-- 接手先读[AGENTS.md](AGENTS.md)、[当前状态](docs/WORK_STATE.md)，迁移任务再读[迁移入口](docs/MIGRATION_MAP.md)。
-- [运行与部署](docs/APP_RUNTIME.md)、[本次精灵合并](docs/PET_EXPANSION_20261027.md)、[上传清单](docs/GITHUB_UPLOAD_LIST.md)。
+- 内部协作规则、交接状态和本地日志不随公开代码发布。
+- 完整立绘需单独放置在上述外置目录；仓库中的manifest与数据表版本一致，不需要为首次构建重新生成。
